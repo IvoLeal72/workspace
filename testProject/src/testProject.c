@@ -116,7 +116,6 @@ int main(void) {
 	time.tm_yday=38;
 	RTC_SetValue(&time);
 	RTC_GetValue(&time);
-
 	strftime(buffer,80,"%x - %I:%M%p", &time);
 	printf("Formatted date & time : |%s|\n", buffer );
     return 0 ;
