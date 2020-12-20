@@ -45,7 +45,7 @@ void RTC_GetValue(struct tm *dateTime){
 
 	while(!verified){
 		ctime0[i]=LPC_RTC->CTIME0 & ~(0b11<<6 | 0b11<<14 | 0b111<<21 | 0b11111<<27);
-		ctime1[i]=LPC_RTC->CTIME1 & ~(0b111<<5 | 0b111<<12 | 0b1111<<28);
+		ctime1[i]=LPC_RTC->CTIME1 & ~(0b111<<5 | 0b1111<<12 | 0b1111<<28);
 		ctime2[i]=LPC_RTC->CTIME2 & 0xFFF;
 		verified=true;
 		if(ctime0[0]!=ctime0[1] || ctime0[1]!=ctime0[2]) verified=false;
@@ -55,14 +55,14 @@ void RTC_GetValue(struct tm *dateTime){
 	}
 
 	dateTime->tm_sec=ctime0[0] & 0x3F;
-	dateTime->tm_min=(ctime0[0] <<8) & 0x3F;
-	dateTime->tm_hour=(ctime0[0] <<16) & 0x1F;
-	dateTime->tm_wday=(ctime0[0] <<24) & 7;
+	dateTime->tm_min=(ctime0[0] >>8) & 0x3F;
+	dateTime->tm_hour=(ctime0[0] >>16) & 0x1F;
+	dateTime->tm_wday=(ctime0[0] >>24) & 7;
 	dateTime->tm_mday=ctime1[0] & 0x1F;
-	dateTime->tm_mon=((ctime1[0] <<8) & 0xF)-1;
-	dateTime->tm_year=((ctime1[0] <<16) & 0xFFF) -1900;
+	dateTime->tm_mon=((ctime1[0] >> 8) & 0xF) -1;
+	dateTime->tm_year=((ctime1[0] >>16) & 0xFFF) -1900;
 	dateTime->tm_yday=ctime2[0] & 0xFFF;
-	dateTime->tm_isdst=0;
+	dateTime->tm_isdst=1;
 }
 
 time_t RTC_GetSeconds(){
