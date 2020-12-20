@@ -107,7 +107,7 @@ void loadGameSprites(){
 int main(void) {
 	WAIT_Init();
 	LCDText_Init();
-	RTC_Init(949881600);
+	RTC_Init(0);
 	struct tm dateTime;
 	while(1){
 		LCDText_Locate(0,0);
