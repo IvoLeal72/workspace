@@ -15,7 +15,6 @@
 
 void RTC_Init(time_t seconds){
 	LPC_SC->PCONP |= 1<<9;
-
 	RTC_SetSeconds(seconds);
 }
 
