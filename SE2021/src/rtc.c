@@ -62,7 +62,7 @@ void RTC_GetValue(struct tm *dateTime){
 	dateTime->tm_mon=((ctime1[0] >> 8) & 0xF) -1;
 	dateTime->tm_year=((ctime1[0] >>16) & 0xFFF) -1900;
 	dateTime->tm_yday=ctime2[0] & 0xFFF;
-	dateTime->tm_isdst=1;
+	dateTime->tm_isdst=-1;
 }
 
 time_t RTC_GetSeconds(){
