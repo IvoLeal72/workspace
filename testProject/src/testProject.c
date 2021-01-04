@@ -20,10 +20,6 @@
 #include "button.h"
 #include "rtc.h"
 
-// TODO: insert other include files here
-
-// TODO: insert other definitions and declarations here
-
 void loadGameSprites(){
 	unsigned char E_T[] = {
 		0x00,
