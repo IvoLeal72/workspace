@@ -105,18 +105,11 @@ void loadGameSprites(){
 }
 
 int main(void) {
-	WAIT_Init();
-	LCDText_Init();
-	RTC_Init(949881600);
 	char buffer[80];
-	struct tm dateTime;
-	while(1){
-		LCDText_Locate(0,0);
-		RTC_GetValue(&dateTime);
-		strftime(buffer,80,"%x", &dateTime);
-		LCDText_WriteString(buffer );
-		//LCDText_WriteString(asctime(&dateTime));
-		WAIT_Milliseconds(100);
-	}
+	time_t t=949885323;
+	struct tm *dateTime=localtime(&t);
+	strftime(buffer,80,"%d/%m/%Y %X", dateTime);
+	printf("%s\n", buffer);
+	printf("%s\n", asctime(dateTime));
     return 0 ;
 }
