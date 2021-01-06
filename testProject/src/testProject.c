@@ -107,5 +107,5 @@ int main(void) {
 	strftime(buffer,80,"%d/%m/%Y %X", dateTime);
 	printf("%s\n", buffer);
 	printf("%s\n", asctime(dateTime));
-	return 0 ;
+	return 0;
 }
