@@ -18,8 +18,8 @@
 static int grow=0, gcol=0;
 
 static void LCDText_sendData8(bool dataRegister, uint8_t data){
-	if(dataRegister) LPC_GPIO0->FIOSET=1<<15;
-	else LPC_GPIO0->FIOCLR=1<<15;
+	if(dataRegister) LPC_GPIO0->FIOSET=1<<3;
+	else LPC_GPIO0->FIOCLR=1<<3;
 	WAIT_ChronoUs(1);
 	LPC_GPIO0->FIOSET=1<<16;
 	LPC_GPIO0->FIOCLR=0xF<<23;
@@ -36,8 +36,8 @@ static void LCDText_sendData8(bool dataRegister, uint8_t data){
 }
 
 static void LCDText_sendData4(bool dataRegister, uint8_t data){
-	if(dataRegister) LPC_GPIO0->FIOSET=1<<15;
-	else LPC_GPIO0->FIOCLR=1<<15;
+	if(dataRegister) LPC_GPIO0->FIOSET=1<<3;
+	else LPC_GPIO0->FIOCLR=1<<3;
 	WAIT_ChronoUs(1);
 	LPC_GPIO0->FIOSET=1<<16;
 	LPC_GPIO0->FIOCLR=0xF<<23;
@@ -48,9 +48,9 @@ static void LCDText_sendData4(bool dataRegister, uint8_t data){
 }
 
 void LCDText_Init(){
-	LPC_GPIO0->FIODIR|=(0b11<<15 | 0xF<<23);
+	LPC_GPIO0->FIODIR|=(1<<3 | 1<<16 | 0xF<<23);
 	LPC_GPIO0->FIOCLR=1<<16;
-	LPC_PINCON->PINSEL0 &= ~(0b11<<30);
+	LPC_PINCON->PINSEL0 &= ~(0b11<<6);
 	LPC_PINCON->PINSEL1 &= ~((0xFF<<14) | 3);
 
 	WAIT_Milliseconds(41);

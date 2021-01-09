@@ -102,10 +102,11 @@ void loadGameSprites(){
 
 int main(void) {
 	char buffer[80];
+	WAIT_Init();
+	LCDText_Init();
 	time_t t=949885323;
 	struct tm *dateTime=localtime(&t);
 	strftime(buffer,80,"%d/%m/%Y %X", dateTime);
-	printf("%s\n", buffer);
-	printf("%s\n", asctime(dateTime));
+	LCDText_WriteString(buffer);
 	return 0;
 }
