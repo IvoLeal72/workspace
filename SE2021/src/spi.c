@@ -32,6 +32,15 @@ void SPI_ConfigTransfer(int frequency, int bitData, int mode){
 }
 
 int SPI_Transfer(unsigned short *txBuffer, unsigned short *rxBuffer, int lenght){
+	int aux;
+	for(int i=0; i<length; i++){
+		LPC_SPI->SPDR=txBuffer[i];
+		do{
+			aux=LPC_SPI->SPSR & 0xf8;
+			if(aux & 0x78) return aux;
+		}while(aux==0);
+		rxBuffer[i]=LPC_SPI->SPDR;
+	}
 	return 0;
 }
 
