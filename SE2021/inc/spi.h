@@ -12,6 +12,6 @@ void SPI_Init(void);
 
 void SPI_ConfigTransfer(int frequency, int bitData, int mode);
 
-int SPI_Transfer(unsigned short *txBuffer, unsigned short *rxBuffer, int lenght);
+int SPI_Transfer(unsigned short *txBuffer, unsigned short *rxBuffer, int length);
 
 #endif /* SPI_H_ */

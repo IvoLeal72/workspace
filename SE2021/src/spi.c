@@ -12,7 +12,7 @@
 void SPI_Init(void){
 	LPC_SC->PCONP |= 1<<8;
 
-	LPC_SC->PCLKSEL0 |= 0b11<<16;
+	LPC_SC->PCLKSEL0 &= ~(0b11<<16);
 
 	LPC_PINCON->PINSEL0 |= 0b11<<30;
 	LPC_PINCON->PINSEL1 |= 0x3f;
@@ -28,10 +28,14 @@ void SPI_ConfigTransfer(int frequency, int bitData, int mode){
 	LPC_SPI->SPCR &= ~(3<<3);
 	LPC_SPI->SPCR |= (mode & 3)<<3;
 
-	LPC_SPI->SPCCR = SystemCoreClock/(8*frequency);
+	int aux = SystemCoreClock/(4*frequency);
+	aux&=~1;
+	if(aux<8) aux=8;
+	else if(aux>0xfe) aux=0xfe;
+	LPC_SPI->SPCCR=aux;
 }
 
-int SPI_Transfer(unsigned short *txBuffer, unsigned short *rxBuffer, int lenght){
+int SPI_Transfer(unsigned short *txBuffer, unsigned short *rxBuffer, int length){
 	int aux;
 	for(int i=0; i<length; i++){
 		LPC_SPI->SPDR=txBuffer[i];
