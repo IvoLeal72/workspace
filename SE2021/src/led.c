@@ -21,7 +21,7 @@ void LED_Init(bool state){
 }
 
 bool LED_GetState(void){
-	return LPC_GPIO0->FIOPIN & (1<<22);
+	return  !(LPC_GPIO0->FIOPIN & (1<<22));
 }
 
 void LED_On(void){
