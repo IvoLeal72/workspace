@@ -19,6 +19,7 @@
 #include "lcd.h"
 #include "button.h"
 #include "rtc.h"
+#include "ADXL345.h"
 
 void loadGameSprites(){
 	unsigned char E_T[] = {
@@ -101,12 +102,12 @@ void loadGameSprites(){
 }
 
 int main(void) {
-	char buffer[80];
+	SPI_Init();
+	ADXL345_Init();
 	WAIT_Init();
 	LCDText_Init();
-	time_t t=949885323;
-	struct tm *dateTime=localtime(&t);
-	strftime(buffer,80,"%d/%m/%Y %X", dateTime);
-	LCDText_WriteString(buffer);
+
+	LCDText_Printf("0x%x\n", ADXL345_GetId());
+
 	return 0;
 }

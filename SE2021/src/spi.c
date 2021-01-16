@@ -15,7 +15,7 @@ void SPI_Init(void){
 	LPC_SC->PCLKSEL0 &= ~(0b11<<16);
 
 	LPC_PINCON->PINSEL0 |= 0b11<<30;
-	LPC_PINCON->PINSEL1 |= 0x3f;
+	LPC_PINCON->PINSEL1 |= 0x3c;
 
 	LPC_SPI->SPCR |= (1<<2 | 1<<5);
 	LPC_SPI->SPCR &= ~(3<<6);
