@@ -14,4 +14,6 @@ void ADXL345_Init();
 
 unsigned char ADXL345_GetId();
 
+int ADXL345_GetValues(unsigned short values[3]);
+
 #endif /* ADXL345_H_ */

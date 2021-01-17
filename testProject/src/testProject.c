@@ -108,6 +108,14 @@ int main(void) {
 	LCDText_Init();
 
 	LCDText_Printf("0x%x\n", ADXL345_GetId());
-
+	WAIT_Milliseconds(1000);
+	unsigned short values[3];
+	int res;
+	while(1){
+		res=ADXL345_GetValues(values);
+		LCDText_Locate(0,0);
+		LCDText_Printf("0x%02X X=0x%04X Y=0x%04X Z=0x%04X", res, values[0], values[1], values[2]);
+		WAIT_Milliseconds(10);
+	}
 	return 0;
 }

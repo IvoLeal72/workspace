@@ -35,3 +35,15 @@ unsigned char ADXL345_GetId(){
 
 	return (unsigned char)rxBuffer[1];
 }
+
+int ADXL345_GetValues(unsigned short values[3]){
+	unsigned short txBuffer[7]={0x80|0x40|0x32};
+	unsigned short rxBuffer[7];
+	int res=ADXL345_Transfer(txBuffer, rxBuffer, 7);
+
+	values[0]=rxBuffer[2]|rxBuffer[1]<<8; //X
+	values[1]=rxBuffer[4]|rxBuffer[3]<<8; //Y
+	values[2]=rxBuffer[6]|rxBuffer[5]<<8; //Z
+
+	return res;
+}
