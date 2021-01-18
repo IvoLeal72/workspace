@@ -17,7 +17,10 @@
 char gameMap[16][4];
 char displayMap[16][2];
 char carLocation=1;
+char nextCarLocation=1;
 bool makeLine=true;
+bool mapChanged=true;
+unsigned long score=0;
 
 static void loadGameSprites(){
 	unsigned char E_E[8] = {0};
@@ -101,13 +104,25 @@ static void loadGameSprites(){
 	LCDText_CreateChar(7, C_T);
 }
 
+static void Game_InputDetect(){
+	short y=ADXL345_GetY();
+	if(y>220) nextCarLocation=3;
+	else if(y>170 && y<180) nextCarLocation=2;
+	else if(y>120 && y<130) nextCarLocation=1;
+	else if(y>50 && y<80) nextCarLocation=0;
+
+	if(nextCarLocation>carLocation) carLocation++;
+	else if(nextCarLocation<carLocation) carLocation--;
+}
+
 bool Game_Update(){
+	Game_InputDetect();
+	if(gameMap[0][(int)carLocation]==1) return false;
 	for(int y=0; y<2; y++){
 		for(int x=0; x<16; x++){
-			displayMap[x][y]=gameMap[x][2*y]|gameMap[x][2*y+1]<<1; //0 se não houver nenhum obstaculo, 1 se obstaculo em cima, 2 se obsatculo em baixo, e 3 se obstaculo em ambos
+			displayMap[x][y]=gameMap[x][2*y+1]|gameMap[x][2*y]<<1; //0 se não houver nenhum obstaculo, 1 se obstaculo em cima, 2 se obsatculo em baixo, e 3 se obstaculo em ambos
 		}
 	}
-	if(gameMap[0][(int)carLocation]) return false;
 	switch(carLocation){
 		case 0: if(gameMap[0][1]) displayMap[0][0]=7; else displayMap[0][0]=5; break;
 		case 1:	if(gameMap[0][0]) displayMap[0][0]=6; else displayMap[0][0]=4; break;
@@ -139,12 +154,15 @@ void Game_Begin(){
 	memset(gameMap, 0, 4*16);
 	srand(WAIT_GetElapsedMillis(0));
 	carLocation=rand()%4;
-	Game_Update();
+	score=0;
 }
 
 void Game_NextTick(){
+	for(int i=0; i<4; i++) score+=gameMap[0][i];
 	memmove(gameMap, gameMap+1, 4*15);
 	char line=makeLine?rand()%15:0; //cria linha vazia quando makeLine é falso e linha com obstacuilos em posições aleatorias excepto em todas
 	makeLine=!makeLine;
 	for(int i=0; i<4; i++) gameMap[15][i] = (line>>i)&1;
 }
+
+unsigned long Game_GetScore(){ return score; }
