@@ -11,7 +11,6 @@
 
 #include "wait.h"
 
-
 #define SYSTICK_FREQ (SystemCoreClock / 1000)
 
 static volatile uint32_t __ms;
@@ -31,7 +30,7 @@ void WAIT_Milliseconds(uint32_t millis)
 
 int32_t WAIT_Init(void)
 {
-    SystemCoreClockUpdate();
+	SystemCoreClockUpdate();
     LPC_TIM0->PR = (SystemCoreClock/10000000) -1;
 	LPC_TIM0->MCR = 0b11;
 	LPC_TIM0->CTCR = 0;
