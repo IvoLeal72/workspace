@@ -19,22 +19,19 @@
 #include "lcd.h"
 #include "button.h"
 #include "rtc.h"
-#include "ADXL345.h"
 
 int main(void) {
-	ADXL345_Init();
 	WAIT_Init();
 	LCDText_Init();
-
-	LCDText_Printf("0x%x\n", ADXL345_GetId());
-	WAIT_Milliseconds(5000);
-	short values[3];
-	int res;
+	RTC_Init(949967820);
+	struct tm dateTime;
+	char str[20];
 	while(1){
-		res=ADXL345_GetValues(values);
+		RTC_GetValue(&dateTime);
+		strftime(str, 20, "%d/%m/%Y\n%H:%M:%S", &dateTime);
 		LCDText_Locate(0,0);
-		LCDText_Printf("0x%02X X=%06d Y=%06d Z=%06d", res, values[0], values[1], values[2]);
-		WAIT_Milliseconds(100);
+		LCDText_WriteString(str);
+		WAIT_Milliseconds(10);
 	}
 	return 0;
 }
