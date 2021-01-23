@@ -35,7 +35,7 @@ int main(void) {
     // Enter an infinite loop, just incrementing a counter
     while(1) {
         int buttons=BUTTON_Read();
-        //printf("%d\n", buttons);
+        printf("%d\n", buttons);
         int time=1;
         if(buttons & 1<<2){
         	time=1500;
