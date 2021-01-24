@@ -268,6 +268,7 @@ void showScore(unsigned int score){
 		}
 		WAIT_Milliseconds(100);
 	}
+	LCDText_SetCursor(false);
 }
 
 int scoreCmp(const void* e1, const void* e2){
