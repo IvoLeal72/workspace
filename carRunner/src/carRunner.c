@@ -18,8 +18,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include "gameUtils.h"
+#include "flash.h"
 #define MAX_MENU_ID 6
-#define FLASH_SCORE_ADDR 0x78000
+#define FLASH_SCORE_ADDR (void*)0x78000
 #define FLASH_SCORE_SECTOR 29
 
 struct score{
@@ -128,7 +129,7 @@ void clockModify(){
 	strftime(str, 33, "   %d/%m/%Y       %H:%M:%S    ", dateTime);
 	LCDText_WriteString(str);
 	LCDText_SetCursor(true);
-
+	WAIT_Milliseconds(200);
 	LCDText_Locate(0,4);
 	int buttons=buttonHandler();
 	while(1){
@@ -215,6 +216,7 @@ void clockModify(){
 	}
 	LCDText_SetCursor(false);
 	RTC_SetValue(dateTime);
+	WAIT_Milliseconds(200);
 }
 
 void clearScores(){

@@ -131,7 +131,7 @@ void LCDText_CreateChar(unsigned char location, unsigned char charmap[]){
 }
 
 void LCDText_SetCursor(bool state){
-	if(state) 	LCDText_sendData8(false, 0b1111);
+	if(state) 	LCDText_sendData8(false, 0b1110);
 	else 		LCDText_sendData8(false, 0b1100);
 	WAIT_ChronoUs(39);
 }
