@@ -24,6 +24,6 @@ bool Game_Update();
 
 void Game_NextTick();
 
-unsigned long Game_GetScore();
+unsigned int Game_GetScore();
 
 #endif /* GAMEUTILS_H_ */

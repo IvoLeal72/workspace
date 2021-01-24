@@ -129,3 +129,9 @@ void LCDText_CreateChar(unsigned char location, unsigned char charmap[]){
 	}
 	LCDText_Locate(grow, gcol); //retorna ao endereço de ddram onde estava
 }
+
+void LCDText_SetCursor(bool state){
+	if(state) 	LCDText_sendData8(false, 0b1111);
+	else 		LCDText_sendData8(false, 0b1100);
+	WAIT_ChronoUs(39);
+}

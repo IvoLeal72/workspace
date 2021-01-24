@@ -19,19 +19,12 @@
 #include "lcd.h"
 #include "button.h"
 #include "rtc.h"
+#include "flash.h"
 
 int main(void) {
-	WAIT_Init();
-	LCDText_Init();
-	RTC_Init(949967820);
-	struct tm dateTime;
-	char str[20];
-	while(1){
-		RTC_GetValue(&dateTime);
-		strftime(str, 20, "%d/%m/%Y\n%H:%M:%S", &dateTime);
-		LCDText_Locate(0,0);
-		LCDText_WriteString(str);
-		WAIT_Milliseconds(10);
+	int* ptr=0x78000;
+	for(int i=0; i<64; i++){
+		printf("%d\n", ptr[i]);
 	}
 	return 0;
 }

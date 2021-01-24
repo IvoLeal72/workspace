@@ -24,5 +24,7 @@ void LCDText_Printf(char* fmt, ...);
 
 void LCDText_CreateChar(unsigned char location, unsigned char charmap[]);
 
+void LCDText_SetCursor(bool state);
+
 
 #endif /* LCD_H_ */

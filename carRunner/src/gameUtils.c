@@ -20,7 +20,7 @@ char carLocation=1;
 char nextCarLocation=1;
 bool makeLine=true;
 bool mapChanged=true;
-unsigned long score=0;
+unsigned int score=0;
 
 static void loadGameSprites(){
 	unsigned char E_E[8] = {0};
@@ -165,4 +165,4 @@ void Game_NextTick(){
 	for(int i=0; i<4; i++) gameMap[15][i] = (line>>i)&1;
 }
 
-unsigned long Game_GetScore(){ return score; }
+unsigned int Game_GetScore(){ return score; }
