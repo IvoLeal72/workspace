@@ -28,7 +28,8 @@ int BUTTON_Read(void){
 	return aux;
 }
 
-int BUTTON_GetButtonsEvents (void){ //for every button return 2 bits: 00 if unmodified, 01 if pressed and 10 if released
+//for every button return 2 bits: 00 if unmodified, 01 if pressed and 10 if released
+int BUTTON_GetButtonsEvents (void){
 	int state=BUTTON_Hit();
 	int result=0;
 	for(int i=2; i>=0; i--){

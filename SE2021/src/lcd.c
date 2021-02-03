@@ -18,16 +18,16 @@
 static int grow=0, gcol=0;
 
 static void LCDText_sendData8(bool dataRegister, uint8_t data){
-	if(dataRegister) LPC_GPIO0->FIOSET=1<<3;
+	if(dataRegister) LPC_GPIO0->FIOSET=1<<3; 	//define RS
 	else LPC_GPIO0->FIOCLR=1<<3;
 	WAIT_ChronoUs(1);
-	LPC_GPIO0->FIOSET=1<<16;
-	LPC_GPIO0->FIOCLR=0xF<<23;
-	LPC_GPIO0->FIOSET=((data>>4)&0xF)<<23;
-	WAIT_ChronoUs(10);
-	LPC_GPIO0->FIOCLR=1<<16;
-	WAIT_ChronoUs(10);
-	LPC_GPIO0->FIOSET=1<<16;
+	LPC_GPIO0->FIOSET=1<<16;					//ativa enbale
+	LPC_GPIO0->FIOCLR=0xF<<23;					//define dados pondo tudo a 0 e depois ativando
+	LPC_GPIO0->FIOSET=((data>>4)&0xF)<<23;		//apenas os que estão a 1 nos dados
+	WAIT_ChronoUs(10);							//espera para garantir boa leitura por parte do LCD
+	LPC_GPIO0->FIOCLR=1<<16;					//desativa enable
+	WAIT_ChronoUs(10);							//espera para garantir boa leitura por parte do LCD
+	LPC_GPIO0->FIOSET=1<<16;					//ciclo repete mas agora para a parte baixa de data
 	LPC_GPIO0->FIOCLR=0xF<<23;
 	LPC_GPIO0->FIOSET=((data)&0xF)<<23;
 	WAIT_ChronoUs(10);
@@ -36,15 +36,15 @@ static void LCDText_sendData8(bool dataRegister, uint8_t data){
 }
 
 static void LCDText_sendData4(bool dataRegister, uint8_t data){
-	if(dataRegister) LPC_GPIO0->FIOSET=1<<3;
+	if(dataRegister) LPC_GPIO0->FIOSET=1<<3;	//define RS
 	else LPC_GPIO0->FIOCLR=1<<3;
 	WAIT_ChronoUs(1);
-	LPC_GPIO0->FIOSET=1<<16;
-	LPC_GPIO0->FIOCLR=0xF<<23;
-	LPC_GPIO0->FIOSET=(data&0xF)<<23;
-	WAIT_ChronoUs(1);
-	LPC_GPIO0->FIOCLR=1<<16;
-	WAIT_ChronoUs(1);
+	LPC_GPIO0->FIOSET=1<<16;					//ativa enable
+	LPC_GPIO0->FIOCLR=0xF<<23;					//define dados pondo tudo a 0 e depois ativando
+	LPC_GPIO0->FIOSET=(data&0xF)<<23;			//apenas os que estão a 1 nos dados
+	WAIT_ChronoUs(10);							//espera para garantir boa leitura por parte do LCD
+	LPC_GPIO0->FIOCLR=1<<16;					//desativa enbale
+	WAIT_ChronoUs(10);							//espera para garantir boa leitura por parte do LCD
 }
 
 void LCDText_Init(){
@@ -79,14 +79,14 @@ void LCDText_WriteChar(char ch){
 	if(ch!='\n' && grow<16){
 		LCDText_sendData8(true, ch);
 		gcol++;
-		WAIT_ChronoUs(39);
+		WAIT_ChronoUs(39);			//tempo de espera após a instrução Write data to RAM do display
 	}
 }
 
 void LCDText_Locate(int row, int column){
 	if((row == 0 || row==1) && column<16 ){
 		LCDText_sendData8(false, 0x80 | (0x40*row) | (column & 0x3f));
-		WAIT_ChronoUs(39);
+		WAIT_ChronoUs(39);			//tempo de espera após a instrução set DDRAM address
 		grow=row;
 		gcol=column;
 	}
@@ -96,16 +96,14 @@ void LCDText_WriteString(char* str){
 	if(str!=NULL){
 		for(int i=0; str[i]!=0; i++){
 			LCDText_WriteChar(str[i]);
-			WAIT_ChronoUs(100);
+			WAIT_ChronoUs(100);		//delay introduzido para garantir melhor estabilidade entros os vários envios
 		}
-
-
 	}
 }
 
 void LCDText_Clear(){
 	LCDText_sendData8(false, 1);
-	WAIT_Milliseconds(4);
+	WAIT_Milliseconds(4);			//tempo de espera após a instrução Clear Display
 	grow=0;
 	gcol=0;
 }
@@ -122,10 +120,10 @@ void LCDText_Printf(char* fmt, ...){
 void LCDText_CreateChar(unsigned char location, unsigned char charmap[]){
 	location&=7;
 	LCDText_sendData8(false, 0x40 | location<<3);
-	WAIT_ChronoUs(39);
+	WAIT_ChronoUs(39);				//tempo de espera após a instrução set CGRAM address
 	for(int i=0; i<8; i++){
 		LCDText_sendData8(true, charmap[i]&0x1f);
-		WAIT_ChronoUs(39);
+		WAIT_ChronoUs(39);			//tempo de espera após a instrução write data to RAM
 	}
 	LCDText_Locate(grow, gcol); //retorna ao endereço de ddram onde estava
 }
@@ -133,5 +131,5 @@ void LCDText_CreateChar(unsigned char location, unsigned char charmap[]){
 void LCDText_SetCursor(bool state){
 	if(state) 	LCDText_sendData8(false, 0b1110);
 	else 		LCDText_sendData8(false, 0b1100);
-	WAIT_ChronoUs(39);
+	WAIT_ChronoUs(39);			//tempo de espera após a instrução Display ON/OFF control
 }

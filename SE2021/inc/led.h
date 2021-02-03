@@ -28,7 +28,7 @@
  */
 
 /**
- * @brief 	Initialises the LED api to be able to read them.
+ * @brief 	Initialises the LED api to be able to use the integrated led.
  * @note  	This function must be called prior to any other LED functions,
  * 			and use the pins P0[22] resource.
  */
