@@ -16,8 +16,8 @@
 #define DONE 2
 
 void I2C_Init(char id);
-bool I2C_Start(char id, char* data, size_t data_size, bool receive);
-char I2C_Status(char id);
-bool I2C_Stop(char id);
+bool I2C_Start(unsigned char id, char* data, size_t data_size, bool receive);
+char I2C_Status(unsigned char id);
+bool I2C_Stop(unsigned char id);
 
 #endif /* I2C_H_ */

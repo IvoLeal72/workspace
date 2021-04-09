@@ -15,16 +15,12 @@
 #include <cr_section_macros.h>
 
 #include <stdio.h>
-#include "wait.h"
-#include "lcd.h"
-#include "button.h"
-#include "rtc.h"
-#include "flash.h"
+
+void func(int n){
+	int x[n];
+	for(int i=0; i<n; i++) x[i]=i+1;
+}
 
 int main(void) {
-	int* ptr=0x78000;
-	for(int i=0; i<64; i++){
-		printf("%d\n", ptr[i]);
-	}
-	return 0;
+	return 1;
 }
