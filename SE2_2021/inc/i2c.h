@@ -14,6 +14,7 @@
 #define IDLE 0
 #define BUSY 1
 #define DONE 2
+#define ERROR 3
 
 void I2C_Init(char id);
 bool I2C_Start(unsigned char id, char* data, size_t data_size, bool receive);
