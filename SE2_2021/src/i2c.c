@@ -33,10 +33,20 @@ static void I2Cn_IRQHandler(int n){
 	if(ctrl->state==ERROR | ctrl->state==DONE) return;
 	if(dir==SEND){
 		switch(ctrl->perif->I2STAT & 0xff){
-			case 0x08: case 0x10: ctrl->perif->I2DAT=(ctrl->addr)<<1; ctrl->state=BUSY; ctrl->perif->I2CONCLR=1<<3 | 1<<5; break;
-			case 0x18: case 0x28: ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx]; ctrl->dataIdx++; if(ctrl->dataIdx==ctrl->dataSize) ctrl->state=DONE; ctrl->perif->I2CONCLR=1<<3; break;
-			default: ctrl->state=ERROR;
+			case 0x08: case 0x10:
+				if(ctrl->state==IDLE) return;
+				ctrl->perif->I2DAT=(ctrl->addr)<<1;
+				ctrl->state=BUSY;
+				ctrl->perif->I2CONCLR=1<<5;
+				break;
+			case 0x18: case 0x28:
+				ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx];
+				ctrl->dataIdx++;
+				if(ctrl->dataIdx==ctrl->dataSize) ctrl->state=DONE;
+				break;
+			default: ctrl->state=ERROR; return;
 		}
+		ctrl->perif->I2CONCLR=1<<3;
 		return;
 	}
 	if(dir==RECEIVE){
@@ -59,7 +69,25 @@ void I2C2_IRQHandler(void){
 
 bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive){
 	if(id>=CTRL_CTT) return false;
-
+	struct _controller* ctrl=&ctrl_arr[id];
+	if(ctrl->state==BUSY | ctrl->state==ERROR) return false;
+	ctrl->addr=address & 0x7f;
+	ctrl->dataIdx=0;
+	ctrl->dataSize=data_size;
+	ctrl->dir=receive;
+	ctrl->data=data;
+	if(!receive){
+		ctrl->data=malloc(data_size);
+		if(ctrl->data==NULL) return false;
+		memcpy(ctrl->data, data, data_size);
+	}
+	ctrl->perif->I2CONCLR=0x1c;
+	ctrl->perif->I2CONSET=1<<5;
+	uint32_t start=WAIT_GetElapsedMillis(0);
+	while(WAIT_GetElapsedMillis(start)<1000){
+		if(ctrl->state==BUSY) return true;
+	}
+	return false;
 }
 
 char I2C_Status(int id){
@@ -68,5 +96,21 @@ char I2C_Status(int id){
 }
 
 bool I2C_Stop(int id){
+	if(id>=CTRL_CTT) return false;
+	struct _controller* ctrl=&ctrl_arr[id];
+	if(ctrl->state!=DONE) return false;
+	ctrl->perif->I2CONSET=1<<4;
+	uint32_t start=WAIT_GetElapsedMillis(0);
+	while(WAIT_GetElapsedMillis(start)<1000){
+		if(ctrl->perif->I2CONSET & 1<<4){
+			ctrl->state=IDLE;
+			return true;
+		}
+	}
 	return false;
+}
+
+char I2C_GetErrorCode(int id){
+	if(ctrl_arr[id].state!=ERROR) return 0;
+	return ctrl_arr[id].perif->I2STAT &0xff;
 }
