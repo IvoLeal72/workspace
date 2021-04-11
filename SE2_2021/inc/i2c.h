@@ -9,6 +9,8 @@
 #define I2C_H_
 
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include "wait.h"
 
 #define IDLE 0
@@ -16,9 +18,9 @@
 #define DONE 2
 #define ERROR 3
 
-void I2C_Init(char id);
-bool I2C_Start(unsigned char id, char* data, size_t data_size, bool receive);
-char I2C_Status(unsigned char id);
-bool I2C_Stop(unsigned char id);
+void I2C_Init(int id);
+bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive);
+char I2C_Status(int id);
+bool I2C_Stop(int id);
 
 #endif /* I2C_H_ */

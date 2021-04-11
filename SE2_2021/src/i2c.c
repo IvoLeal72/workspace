@@ -17,7 +17,7 @@
 #define RECEIVE 1
 
 struct _controller{
-	const LPC_I2C_TypeDef* perif;
+	LPC_I2C_TypeDef* perif;
 	char state;
 	char addr;
 	char dir;
@@ -30,8 +30,8 @@ static struct _controller ctrl_arr[CTRL_CTT]={{LPC_I2C0, IDLE}, {LPC_I2C1, IDLE}
 
 static void I2Cn_IRQHandler(int n){
 	struct _controller* ctrl=&ctrl_arr[n];
-	if(ctrl->state==ERROR | ctrl->state==DONE) return;
-	if(dir==SEND){
+	if(ctrl->state==ERROR || ctrl->state==DONE) return;
+	if(ctrl->dir==SEND){
 		switch(ctrl->perif->I2STAT & 0xff){
 			case 0x08: case 0x10:
 				ctrl->perif->I2DAT=(ctrl->addr)<<1;
@@ -56,7 +56,7 @@ static void I2Cn_IRQHandler(int n){
 		ctrl->perif->I2CONCLR=1<<3;
 		return;
 	}
-	if(dir==RECEIVE){
+	if(ctrl->dir==RECEIVE){
 		switch(ctrl->perif->I2STAT & 0xff){
 			case 0x08: case 0x10:
 				ctrl->perif->I2DAT=(ctrl->addr)<<1;
@@ -64,7 +64,7 @@ static void I2Cn_IRQHandler(int n){
 				ctrl->perif->I2CONCLR=1<<5;
 				break;
 			case 0x40:
-				if(data_size>1) ctrl->perif->I2CONSET=1<<2;
+				if(ctrl->dataSize>1) ctrl->perif->I2CONSET=1<<2;
 				else ctrl->perif->I2CONCLR=1<<2;
 				break;
 			case 0x50:
@@ -100,7 +100,7 @@ void I2C2_IRQHandler(void){
 bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive){
 	if(id>=CTRL_CTT) return false;
 	struct _controller* ctrl=&ctrl_arr[id];
-	if(ctrl->state==BUSY | ctrl->state==ERROR) return false;
+	if(ctrl->state==BUSY || ctrl->state==ERROR) return false;
 	ctrl->addr=address & 0x7f;
 	ctrl->dataIdx=0;
 	ctrl->dataSize=data_size;
