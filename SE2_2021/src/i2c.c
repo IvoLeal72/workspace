@@ -46,6 +46,11 @@ static void I2Cn_IRQHandler(int n){
 				ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx];
 				ctrl->dataIdx++;
 				break;
+			case 0x30:
+				if(ctrl->dataIdx==ctrl->dataSize){
+					ctrl->state=DONE;
+					return;
+				}
 			default: ctrl->state=ERROR; return;
 		}
 		ctrl->perif->I2CONCLR=1<<3;
