@@ -34,15 +34,17 @@ static void I2Cn_IRQHandler(int n){
 	if(dir==SEND){
 		switch(ctrl->perif->I2STAT & 0xff){
 			case 0x08: case 0x10:
-				if(ctrl->state==IDLE) return;
 				ctrl->perif->I2DAT=(ctrl->addr)<<1;
 				ctrl->state=BUSY;
 				ctrl->perif->I2CONCLR=1<<5;
 				break;
 			case 0x18: case 0x28:
+				if(ctrl->dataIdx==ctrl->dataSize){
+					ctrl->state=DONE;
+					return;
+				}
 				ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx];
 				ctrl->dataIdx++;
-				if(ctrl->dataIdx==ctrl->dataSize) ctrl->state=DONE;
 				break;
 			default: ctrl->state=ERROR; return;
 		}
@@ -50,7 +52,30 @@ static void I2Cn_IRQHandler(int n){
 		return;
 	}
 	if(dir==RECEIVE){
-
+		switch(ctrl->perif->I2STAT & 0xff){
+			case 0x08: case 0x10:
+				ctrl->perif->I2DAT=(ctrl->addr)<<1;
+				ctrl->state=BUSY;
+				ctrl->perif->I2CONCLR=1<<5;
+				break;
+			case 0x40:
+				if(data_size>1) ctrl->perif->I2CONSET=1<<2;
+				else ctrl->perif->I2CONCLR=1<<2;
+				break;
+			case 0x50:
+				if(ctrl->dataIdx==ctrl->dataSize-1) ctrl->perif->I2CONCLR=1<<2;
+				else ctrl->perif->I2CONSET=1<<2;
+				ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT & 0xff;
+				ctrl->dataIdx++;
+				break;
+			case 0x58:
+				ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT & 0xff;
+				ctrl->state=DONE;
+				return;
+			default:
+				ctrl->state=ERROR;
+		}
+		ctrl->perif->I2CONCLR=1<<3;
 		return;
 	}
 }
