@@ -6,10 +6,13 @@
  */
 
 #include "i2c.h"
+#include "Utils.h"
 
 #ifdef __USE_CMSIS
 	#include "LPC17xx.h"
 #endif
+
+#define CCLK_DIVIDER 8
 
 #define CTRL_CTT 3
 
@@ -97,7 +100,54 @@ void I2C2_IRQHandler(void){
 	I2Cn_IRQHandler(2);
 }
 
-bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive){
+void I2C_Init(int id, char options){
+	switch(id){
+		case 0:
+			LPC_SC->PCONP |= 1<<7;
+			set_PCLK(CCLK_DIVIDER, 0, 14);
+			set_PINSEL(1, 1, 22);
+			set_PINSEL(1, 1, 24);
+			LPC_PINCON->I2CPADCFG=0;
+			break;
+		case 1:
+			LPC_SC->PCONP |= 1<<19;
+			set_PCLK(CCLK_DIVIDER, 1, 6);
+			switch(options){
+				case 1:
+					set_PINSEL(3, 1, 6);
+					set_PINSEL(3, 1, 8);
+					set_PINMODE(2, 1, 6);
+					set_PINMODE(2, 1, 8);
+					set_PINMODE_OD(1, 0, 19);
+					set_PINMODE_OD(1, 0, 20);
+					break;
+				default:
+					set_PINSEL(3, 0, 0);
+					set_PINSEL(3, 0, 2);
+					set_PINMODE(2, 0, 0);
+					set_PINMODE(2, 0, 2);
+					set_PINMODE_OD(1, 0, 0);
+					set_PINMODE_OD(1, 0, 1);
+			}
+			break;
+		case 2:
+			LPC_SC->PCONP |= 1<<26;
+			set_PCLK(CCLK_DIVIDER, 1, 20);
+			set_PINSEL(2, 0, 20);
+			set_PINSEL(2, 0, 22);
+			set_PINMODE(2, 0, 20);
+			set_PINMODE(2, 0, 22);
+			set_PINMODE_OD(1, 0, 10);
+			set_PINMODE_OD(1, 0, 11);
+			break;
+		default: return;
+	}
+
+	NVIC_EnableIRQ(I2C0_IRQn+id);
+	ctrl_arr[id].perif->I2CONSET=1<<6;
+}
+
+bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive, unsigned int frequency, unsigned int duty_cycle){
 	if(id>=CTRL_CTT) return false;
 	struct _controller* ctrl=&ctrl_arr[id];
 	if(ctrl->state==BUSY || ctrl->state==ERROR) return false;
@@ -112,6 +162,15 @@ bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive)
 		memcpy(ctrl->data, data, data_size);
 	}
 	ctrl->perif->I2CONCLR=0x1c;
+
+	unsigned int period_sum=(SystemCoreClock/CCLK_DIVIDER)/(frequency*1000);
+	unsigned short period_high=period_sum*duty_cycle/100;
+	if(period_high<4) period_high=4;
+	unsigned short period_low=period_sum-period_high;
+	if(period_low<4) period_low=4;
+
+	ctrl->perif->I2SCLH=period_high;
+	ctrl->perif->I2SCLL=period_low;
 	ctrl->perif->I2CONSET=1<<5;
 	uint32_t start=WAIT_GetElapsedMillis(0);
 	while(WAIT_GetElapsedMillis(start)<1000){
