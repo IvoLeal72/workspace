@@ -14,13 +14,20 @@
 
 #include <cr_section_macros.h>
 
-#include <stdio.h>
-
-void func(int n){
-	int x[n];
-	for(int i=0; i<n; i++) x[i]=i+1;
-}
+#include "lcd.h"
+#include "wait.h"
+#include "i2c.h"
+#include "EEPROM.h"
 
 int main(void) {
-	return 1;
+	WAIT_Init();
+	LCDText_Init();
+	I2C_Init(1, 1);
+	char arr[10];
+	for(int i=0; i<10; i++){
+		arr[i]=i;
+	}
+	LCDText_Printf("%d\n", EEPROM_Write(0, arr, 10));
+	printf("done\n");
+	while(true);
 }
