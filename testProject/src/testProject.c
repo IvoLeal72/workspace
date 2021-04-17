@@ -14,20 +14,21 @@
 
 #include <cr_section_macros.h>
 
+#include <stdio.h>
 #include "lcd.h"
 #include "wait.h"
 #include "i2c.h"
 #include "EEPROM.h"
+#define TEST_SIZE 10
 
 int main(void) {
 	WAIT_Init();
 	LCDText_Init();
 	I2C_Init(1, 1);
-	char arr[10];
-	for(int i=0; i<10; i++){
-		arr[i]=i;
-	}
-	LCDText_Printf("%d\n", EEPROM_Write(0, arr, 10));
-	printf("done\n");
+	char arr[TEST_SIZE];
+	//for(int i=0; i<TEST_SIZE; i++) arr[i]=i;
+	LCDText_Printf("%d-", EEPROM_Read(0, arr, TEST_SIZE));
+	for(int i=0; i<TEST_SIZE; i++) LCDText_Printf("%d ", arr[i]);
+	//printf("done\n");
 	while(true);
 }

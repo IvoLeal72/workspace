@@ -13,7 +13,7 @@
 #include "i2c.h"
 #include "EEPROM.h"
 
-#define DATA_FREQ 400
+#define DATA_FREQ 300
 #define DUTY_CYCLE 50
 #define EEPROM_ADDR 0x50
 #define I2C_CTRL 1

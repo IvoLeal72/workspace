@@ -35,7 +35,10 @@ static struct _controller ctrl_arr[CTRL_CTT]={{LPC_I2C0, IDLE}, {LPC_I2C1, IDLE}
 static void I2Cn_IRQHandler(int n){
 	struct _controller* ctrl=&ctrl_arr[n];
 	printf("0x%02X - %d\n", ctrl->perif->I2STAT, ctrl->state);
-	if(ctrl->state==ERROR || ctrl->state==DONE) return;
+	if(ctrl->state==ERROR){
+		NVIC_DisableIRQ(I2C0_IRQn+n);
+		return;
+	}
 	if(ctrl->dir==SEND){
 		switch(ctrl->perif->I2STAT & 0xff){
 			case 0xf8: case 0x58:
@@ -48,6 +51,7 @@ static void I2Cn_IRQHandler(int n){
 			case 0x18: case 0x28:
 				if(ctrl->dataIdx==ctrl->dataSize){
 					ctrl->state=DONE;
+					NVIC_DisableIRQ(I2C0_IRQn+n);
 					return;
 				}
 				ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx];
@@ -57,6 +61,7 @@ static void I2Cn_IRQHandler(int n){
 			case 0x30:
 				if(ctrl->dataIdx==ctrl->dataSize){
 					ctrl->state=DONE;
+					NVIC_DisableIRQ(I2C0_IRQn+n);
 					return;
 				}
 			default: ctrl->state=ERROR; return;
@@ -86,6 +91,7 @@ static void I2Cn_IRQHandler(int n){
 			case 0x58:
 				ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT & 0xff;
 				ctrl->state=DONE;
+				NVIC_DisableIRQ(I2C0_IRQn+n);
 				return;
 			default:
 				ctrl->state=ERROR;
@@ -97,17 +103,14 @@ static void I2Cn_IRQHandler(int n){
 
 void I2C0_IRQHandler(void){
 	I2Cn_IRQHandler(0);
-	//ctrl_arr[0].perif->I2CONCLR=1<<3;
 }
 
 void I2C1_IRQHandler(void){
 	I2Cn_IRQHandler(1);
-	//ctrl_arr[1].perif->I2CONCLR=1<<3;
 }
 
 void I2C2_IRQHandler(void){
 	I2Cn_IRQHandler(2);
-	//ctrl_arr[2].perif->I2CONCLR=1<<3;
 }
 
 void I2C_Init(int id, char options){
@@ -182,9 +185,9 @@ bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive,
 	ctrl->perif->I2SCLH=period_high;
 	ctrl->perif->I2SCLL=period_low;
 	//printf("Start\n");
-	NVIC_EnableIRQ(I2C0_IRQn+id);
 	ctrl->perif->I2CONSET=1<<5;
 	uint32_t start=WAIT_GetElapsedMillis(0);
+	NVIC_EnableIRQ(I2C0_IRQn+id);
 	while(WAIT_GetElapsedMillis(start)<TIMEOUT){
 		if(ctrl->state==BUSY) return true;
 	}
@@ -201,6 +204,7 @@ bool I2C_Stop(int id){
 	struct _controller* ctrl=&ctrl_arr[id];
 	if(ctrl->state!=DONE) return false;
 	ctrl->perif->I2CONSET=1<<4;
+	ctrl->perif->I2CONCLR=1<<3;
 	uint32_t start=WAIT_GetElapsedMillis(0);
 	while(WAIT_GetElapsedMillis(start)<TIMEOUT){
 		if(ctrl->perif->I2CONSET & 1<<4){
