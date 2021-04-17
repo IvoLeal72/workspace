@@ -33,72 +33,7 @@ struct _controller{
 static struct _controller ctrl_arr[CTRL_CTT]={{LPC_I2C0, IDLE}, {LPC_I2C1, IDLE}, {LPC_I2C2, IDLE}};
 
 static void I2Cn_IRQHandler(int n){
-	struct _controller* ctrl=&ctrl_arr[n];
-	printf("0x%02X - %d\n", ctrl->perif->I2STAT, ctrl->state);
-	if(ctrl->state==ERROR){
-		NVIC_DisableIRQ(I2C0_IRQn+n);
-		return;
-	}
-	if(ctrl->dir==SEND){
-		switch(ctrl->perif->I2STAT & 0xff){
-			case 0xf8: case 0x58:
-				return;
-			case 0x08: case 0x10:
-				ctrl->perif->I2DAT=(ctrl->addr)<<1;
-				ctrl->state=BUSY;
-				ctrl->perif->I2CONCLR=1<<5;
-				break;
-			case 0x18: case 0x28:
-				if(ctrl->dataIdx==ctrl->dataSize){
-					ctrl->state=DONE;
-					NVIC_DisableIRQ(I2C0_IRQn+n);
-					return;
-				}
-				ctrl->perif->I2DAT=ctrl->data[ctrl->dataIdx];
-				ctrl->dataIdx++;
-				printf("%d\n", ctrl->dataIdx);
-				break;
-			case 0x30:
-				if(ctrl->dataIdx==ctrl->dataSize){
-					ctrl->state=DONE;
-					NVIC_DisableIRQ(I2C0_IRQn+n);
-					return;
-				}
-			default: ctrl->state=ERROR; return;
-		}
-		ctrl->perif->I2CONCLR=1<<3;
-		return;
-	}
-	if(ctrl->dir==RECEIVE){
-		switch(ctrl->perif->I2STAT & 0xff){
-			case 0xf8:
-				return;
-			case 0x08: case 0x10:
-				ctrl->perif->I2DAT=(ctrl->addr)<<1 | 1;
-				ctrl->state=BUSY;
-				ctrl->perif->I2CONCLR=1<<5;
-				break;
-			case 0x40:
-				if(ctrl->dataSize>1) ctrl->perif->I2CONSET=1<<2;
-				else ctrl->perif->I2CONCLR=1<<2;
-				break;
-			case 0x50:
-				if(ctrl->dataIdx==ctrl->dataSize-1) ctrl->perif->I2CONCLR=1<<2;
-				else ctrl->perif->I2CONSET=1<<2;
-				ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT & 0xff;
-				ctrl->dataIdx++;
-				break;
-			case 0x58:
-				ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT & 0xff;
-				ctrl->state=DONE;
-				NVIC_DisableIRQ(I2C0_IRQn+n);
-				return;
-			default:
-				ctrl->state=ERROR;
-		}
-		ctrl->perif->I2CONCLR=1<<3;
-		return;
-	}
+	
 }
 
 void I2C0_IRQHandler(void){
@@ -163,7 +98,7 @@ void I2C_Init(int id, char options){
 bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive, unsigned int frequency, unsigned int duty_cycle){
 	if(id>=CTRL_CTT) return false;
 	struct _controller* ctrl=&ctrl_arr[id];
-	if(ctrl->state==BUSY || ctrl->state==ERROR) return false;
+	if(ctrl->state==BUSY) return false;
 	ctrl->addr=address & 0x7f;
 	ctrl->dataIdx=0;
 	ctrl->dataSize=data_size;
@@ -207,7 +142,7 @@ bool I2C_Stop(int id){
 	ctrl->perif->I2CONCLR=1<<3;
 	uint32_t start=WAIT_GetElapsedMillis(0);
 	while(WAIT_GetElapsedMillis(start)<TIMEOUT){
-		if(ctrl->perif->I2CONSET & 1<<4){
+		if(!(ctrl->perif->I2CONSET & 1<<4)){
 			ctrl->state=IDLE;
 			return true;
 		}
