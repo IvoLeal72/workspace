@@ -18,13 +18,16 @@
 #define EEPROM_ADDR 0x50
 #define I2C_CTRL 1
 
-static int EEPROM_Transfer(char* data, size_t data_size, bool read){
-	if(!I2C_Start(I2C_CTRL, EEPROM_ADDR, data, data_size, read, DATA_FREQ, DUTY_CYCLE)) return -2;
+static int EEPROM_Transfer(char* data, size_t data_size, bool read, bool auto_stop){
+	if(!I2C_Start(I2C_CTRL, EEPROM_ADDR, data, data_size, read, auto_stop)) return -2;
 	char status;
-	while((status=I2C_Status(I2C_CTRL))!=DONE){
+	do{
+		status=I2C_Status(I2C_CTRL);
 		if(status==ERROR) return -2;
 		__WFI();
-	}
+	}while(status!=DONE && status!=DONE_STP);
+	if(auto_stop && status==DONE) return -1;
+	if(!auto_stop && status==DONE_STP) return -1;
 	return 0;
 }
 
@@ -37,22 +40,20 @@ int EEPROM_Write(short addr, char* data, size_t data_size){
 		char arr[to_send+2];
 		arr[0]=(addr+data_idx)>>8;
 		arr[1]=addr+data_idx;
-		int res=EEPROM_Transfer(arr, to_send+2, false);
-		if(res!=0) return res;
 		data_idx+=to_send;
+		int res=EEPROM_Transfer(arr, to_send+2, false, data_idx==data_size);
+		if(res!=0) return res;
 		WAIT_Milliseconds(7);
 	}
-	if(!I2C_Stop(I2C_CTRL)) return -2;
 	return data_size;
 }
 
 int EEPROM_Read(short addr, char* data, size_t data_size){
 	if((addr+data_size) >= (1<<13) || addr<0) return -1;
 	char arr[]={addr>>8, addr&0xff};
-	int res=EEPROM_Transfer(arr, 2, false);
+	int res=EEPROM_Transfer(arr, 2, false, false);
 	if(res!=0) return res;
-	res=EEPROM_Transfer(data, data_size, true);
+	res=EEPROM_Transfer(data, data_size, true, true);
 	if(res!=0) return res;
-	if(!I2C_Stop(I2C_CTRL)) return -2;
 	return data_size;
 }

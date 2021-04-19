@@ -26,9 +26,9 @@ int main(void) {
 	LCDText_Init();
 	I2C_Init(1, 1);
 	char arr[TEST_SIZE];
-	//for(int i=0; i<TEST_SIZE; i++) arr[i]=i;
-	LCDText_Printf("%d-", EEPROM_Read(0, arr, TEST_SIZE));
-	for(int i=0; i<TEST_SIZE; i++) LCDText_Printf("%d ", arr[i]);
+	for(int i=0; i<TEST_SIZE; i++) arr[i]=i;
+	LCDText_Printf("%d ", EEPROM_Write(0, arr, TEST_SIZE));
+	//for(int i=0; i<TEST_SIZE; i++) LCDText_Printf("%d ", arr[i]);
 	//printf("done\n");
 	while(true);
 }
