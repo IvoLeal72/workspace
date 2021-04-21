@@ -25,5 +25,6 @@ bool I2C_ConfigTransfer(int id, unsigned int frequency, unsigned int duty_cycle)
 bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive, bool auto_stop);
 char I2C_Status(int id);
 bool I2C_Stop(int id);
+char I2C_GetErrorCode(int id);
 
 #endif /* I2C_H_ */

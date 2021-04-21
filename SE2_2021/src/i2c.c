@@ -38,11 +38,10 @@ static struct _controller ctrl_arr[CTRL_CTT]={{LPC_I2C0}, {LPC_I2C1}, {LPC_I2C2}
 static void I2Cn_IRQHandler(int id){
 	struct _controller* ctrl=&ctrl_arr[id];
 	char STAT=ctrl->perif->I2STAT;
-	LCDText_Printf("%02X", STAT);
 	switch(STAT){
 		case 0x08: case 0x10:
 			ctrl->state=BUSY;
-			ctrl->perif->I2DAT=ctrl->addr | (ctrl->receive?0:1);
+			ctrl->perif->I2DAT=(ctrl->addr<<1) | (ctrl->receive?1:0);
 			ctrl->perif->I2CONCLR=SI | STA;
 			return;
 		case 0x18: case 0x28:
@@ -83,10 +82,10 @@ static void I2Cn_IRQHandler(int id){
 		case 0x50:
 			if(!ctrl->receive) break;
 			ctrl->data[ctrl->dataIdx]=ctrl->perif->I2DAT;
-			if(ctrl->dataIdx<(ctrl->dataSize-1)) ctrl->perif->I2CONSET=AA;
+			if(ctrl->dataIdx<(ctrl->dataSize-2)) ctrl->perif->I2CONSET=AA;
 			else ctrl->perif->I2CONCLR=AA;
 			ctrl->dataIdx++;
-			ctrl->perif->I2CONCLR=AA;
+			ctrl->perif->I2CONCLR=SI;
 			return;
 		case 0x58:
 			if(!ctrl->receive || ctrl->dataIdx!=(ctrl->dataSize-1)) break;
@@ -101,8 +100,12 @@ static void I2Cn_IRQHandler(int id){
 				ctrl->state=DONE;
 			NVIC_DisableIRQ(I2C0_IRQn+id);
 			return;
+		case 0xf8: return;
 	}
-	ctrl->state=ERROR;
+	ctrl->state=ERROR; 							//forçar stop??
+	ctrl->perif->I2CONSET=STO;
+	ctrl->perif->I2CONCLR=SI;
+	while(ctrl->perif->I2CONSET & STO);
 	NVIC_DisableIRQ(I2C0_IRQn+id);
 }
 
@@ -166,7 +169,7 @@ void I2C_Init(int id, char options){
 
 bool I2C_ConfigTransfer(int id, unsigned int frequency, unsigned int duty_cycle){
 	if(id>=CTRL_CTT) return false;
-	if(ctrl_arr[id].state!=IDLE && ctrl_arr[id].state!=ERROR) return false;
+	if(ctrl_arr[id].state!=IDLE && ctrl_arr[id].state!=ERROR && ctrl_arr[id].state!=STOPPED) return false;
 
 	unsigned int period_sum=(SystemCoreClock/CCLK_DIVIDER)/(frequency*1000);
 	unsigned short period_high=period_sum*duty_cycle/100;
@@ -196,9 +199,9 @@ bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive,
 		memcpy(ctrl->data, data, data_size);
 	}
 
-	LCDText_Printf("Start");
 	ctrl->perif->I2CONSET=STA;
 	uint32_t start=WAIT_GetElapsedMillis(0);
+	if(ctrl->state==IDLE) ctrl->perif->I2CONCLR=SI;
 	NVIC_EnableIRQ(I2C0_IRQn+id);
 	while(WAIT_GetElapsedMillis(start)<TIMEOUT){
 		if(ctrl->state==BUSY) return true;
@@ -224,7 +227,7 @@ bool I2C_Stop(int id){
 	if(ctrl->state==STOPPED) return true;
 	if(ctrl->state!=IDLE && ctrl->state!=ERROR) return false;
 	ctrl->perif->I2CONSET=1<<4;
-	ctrl->perif->I2CONCLR=1<<3;
+	if(ctrl->state==IDLE) ctrl->perif->I2CONCLR=1<<3;
 	uint32_t start=WAIT_GetElapsedMillis(0);
 	while(WAIT_GetElapsedMillis(start)<TIMEOUT){
 		if(!(ctrl->perif->I2CONSET & 1<<4)){
