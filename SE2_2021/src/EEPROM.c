@@ -14,7 +14,7 @@
 #include "EEPROM.h"
 #include <string.h>
 
-#define DATA_FREQ 300
+#define DATA_FREQ 400
 #define DUTY_CYCLE 50
 #define EEPROM_ADDR 0x50
 #define I2C_CTRL 1
@@ -34,6 +34,7 @@ static int EEPROM_Transfer(char* data, size_t data_size, bool read, bool auto_st
 
 int EEPROM_Write(short addr, char* data, size_t data_size){
 	if((addr+data_size) > (1<<13) || addr<0) return -1;
+	I2C_ConfigTransfer(I2C_CTRL, DATA_FREQ, DUTY_CYCLE);
 	size_t data_idx=0;
 	while(data_idx<data_size){
 		char to_send=32-((addr+data_idx)&0x1f);
@@ -52,6 +53,7 @@ int EEPROM_Write(short addr, char* data, size_t data_size){
 
 int EEPROM_Read(short addr, char* data, size_t data_size){
 	if((addr+data_size) > (1<<13) || addr<0) return -1;
+	I2C_ConfigTransfer(I2C_CTRL, DATA_FREQ, DUTY_CYCLE);
 	char arr[]={addr>>8, addr&0xff};
 	int res=EEPROM_Transfer(arr, 2, false, false);
 	if(res!=0) return res;

@@ -102,7 +102,7 @@ static void I2Cn_IRQHandler(int id){
 			return;
 		case 0xf8: return;
 	}
-	ctrl->state=ERROR; 							//forçar stop??
+	ctrl->state=ERROR;
 	ctrl->perif->I2CONSET=STO;
 	ctrl->perif->I2CONCLR=SI;
 	while(ctrl->perif->I2CONSET & STO);
