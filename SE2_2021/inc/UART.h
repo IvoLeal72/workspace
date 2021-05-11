@@ -10,8 +10,13 @@
 
 #include <stdbool.h>
 
-bool UART_Initailize(int id, unsigned int baud);
-uint32_t UART_ReadBuffer(int id, char* buffer, size_t len);
-uint32_t UART_WriteBuffer(int id, char* buffer, size_t len);
+bool UART_Initialize(unsigned int baud);
+bool UART_IsChar(void);
+unsigned char UART_ReadChar(void);
+bool UART_GetChar(unsigned char *ch);
+void UART_WriteChar(unsigned char ch);
+void UART_WriteString(char *str);
+void UART_WriteBuffer(unsigned char *buffer, int len);
+void UART_Printf(char *format, ...);
 
 #endif /* UART_H_ */
