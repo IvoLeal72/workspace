@@ -99,3 +99,9 @@ void set_PINMODE_OD(char mode, char reg, char lsb){
 	}
 }
 
+void pin_Config(char gpio, char pin, char func, char res_mode, char dr_mode){
+	set_PINSEL(func, gpio*2+(pin>15?1:0), (pin&0xf)*2);
+	set_PINMODE(func, gpio*2+(pin>15?1:0), (pin&0xf)*2);
+	set_PINMODE_OD(dr_mode, gpio, pin);
+}
+

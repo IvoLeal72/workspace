@@ -13,16 +13,16 @@
 	#include "LPC17xx.h"
 #endif
 
-#define CCLK_DIVIDER 8
+#define I2C_CCLK_DIVIDER 8
 #define TIMEOUT 1000
-#define CTRL_CTT 3
+#define I2C_CTT 3
 
 #define AA (1<<2)
 #define SI (1<<3)
 #define STO (1<<4)
 #define STA (1<<5)
 
-struct _controller{
+struct I2C_controller{
 	LPC_I2C_TypeDef* perif;
 	char state;
 	char addr;
@@ -33,10 +33,10 @@ struct _controller{
 	bool auto_stop;
 };
 
-static struct _controller ctrl_arr[CTRL_CTT]={{LPC_I2C0}, {LPC_I2C1}, {LPC_I2C2}};
+static struct I2C_controller I2C_ctrl_arr[I2C_CTT]={{LPC_I2C0}, {LPC_I2C1}, {LPC_I2C2}};
 
 static void I2Cn_IRQHandler(int id){
-	struct _controller* ctrl=&ctrl_arr[id];
+	struct I2C_controller* ctrl=&I2C_ctrl_arr[id];
 	char STAT=ctrl->perif->I2STAT;
 	switch(STAT){
 		case 0x08: case 0x10:
@@ -125,14 +125,14 @@ void I2C_Init(int id, char options){
 	switch(id){
 		case 0:
 			LPC_SC->PCONP |= 1<<7;
-			set_PCLK(CCLK_DIVIDER, 0, 14);
+			set_PCLK(I2C_CCLK_DIVIDER, 0, 14);
 			set_PINSEL(1, 1, 22);
 			set_PINSEL(1, 1, 24);
 			LPC_PINCON->I2CPADCFG=0;
 			break;
 		case 1:
 			LPC_SC->PCONP |= 1<<19;
-			set_PCLK(CCLK_DIVIDER, 1, 6);
+			set_PCLK(I2C_CCLK_DIVIDER, 1, 6);
 			switch(options){
 				case 1:
 					set_PINSEL(3, 1, 6);
@@ -153,7 +153,7 @@ void I2C_Init(int id, char options){
 			break;
 		case 2:
 			LPC_SC->PCONP |= 1<<26;
-			set_PCLK(CCLK_DIVIDER, 1, 20);
+			set_PCLK(I2C_CCLK_DIVIDER, 1, 20);
 			set_PINSEL(2, 0, 20);
 			set_PINSEL(2, 0, 22);
 			set_PINMODE(2, 0, 20);
@@ -163,29 +163,29 @@ void I2C_Init(int id, char options){
 			break;
 		default: return;
 	}
-	ctrl_arr[id].perif->I2CONSET=1<<6;
-	ctrl_arr[id].state=STOPPED;
+	I2C_ctrl_arr[id].perif->I2CONSET=1<<6;
+	I2C_ctrl_arr[id].state=STOPPED;
 }
 
 bool I2C_ConfigTransfer(int id, unsigned int frequency, unsigned int duty_cycle){
-	if(id>=CTRL_CTT) return false;
-	if(ctrl_arr[id].state!=IDLE && ctrl_arr[id].state!=ERROR && ctrl_arr[id].state!=STOPPED) return false;
+	if(id>=I2C_CTT) return false;
+	if(I2C_ctrl_arr[id].state!=IDLE && I2C_ctrl_arr[id].state!=ERROR && I2C_ctrl_arr[id].state!=STOPPED) return false;
 
-	unsigned int period_sum=(SystemCoreClock/CCLK_DIVIDER)/(frequency*1000);
+	unsigned int period_sum=(SystemCoreClock/I2C_CCLK_DIVIDER)/(frequency*1000);
 	unsigned short period_high=period_sum*duty_cycle/100;
 	if(period_high<4) period_high=4;
 	unsigned short period_low=period_sum-period_high;
 	if(period_low<4) period_low=4;
 
-	ctrl_arr[id].perif->I2SCLH=period_high;
-	ctrl_arr[id].perif->I2SCLL=period_low;
+	I2C_ctrl_arr[id].perif->I2SCLH=period_high;
+	I2C_ctrl_arr[id].perif->I2SCLL=period_low;
 
 	return true;
 }
 
 bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive, bool auto_stop){
-	if(id>=CTRL_CTT) return false;
-	struct _controller* ctrl=&ctrl_arr[id];
+	if(id>=I2C_CTT) return false;
+	struct I2C_controller* ctrl=&I2C_ctrl_arr[id];
 	if(ctrl->state==BUSY) return false;
 	ctrl->addr=address & 0x7f;
 	ctrl->dataIdx=0;
@@ -210,20 +210,20 @@ bool I2C_Start(int id, char address, char* data, size_t data_size, bool receive,
 }
 
 char I2C_Status(int id){
-	if(id>=CTRL_CTT) return -1;
-	char state=ctrl_arr[id].state;
+	if(id>=I2C_CTT) return -1;
+	char state=I2C_ctrl_arr[id].state;
 	if(state==DONE){
-		ctrl_arr[id].state=IDLE;
+		I2C_ctrl_arr[id].state=IDLE;
 	}
 	else if(state==DONE_STP){
-		ctrl_arr[id].state=STOPPED;
+		I2C_ctrl_arr[id].state=STOPPED;
 	}
 	return state;
 }
 
 bool I2C_Stop(int id){
-	if(id>=CTRL_CTT) return false;
-	struct _controller* ctrl=&ctrl_arr[id];
+	if(id>=I2C_CTT) return false;
+	struct I2C_controller* ctrl=&I2C_ctrl_arr[id];
 	if(ctrl->state==STOPPED) return true;
 	if(ctrl->state!=IDLE && ctrl->state!=ERROR) return false;
 	ctrl->perif->I2CONSET=1<<4;
@@ -239,6 +239,6 @@ bool I2C_Stop(int id){
 }
 
 char I2C_GetErrorCode(int id){
-	if(ctrl_arr[id].state!=ERROR) return 0;
-	return ctrl_arr[id].perif->I2STAT &0xff;
+	if(I2C_ctrl_arr[id].state!=ERROR) return 0;
+	return I2C_ctrl_arr[id].perif->I2STAT &0xff;
 }
