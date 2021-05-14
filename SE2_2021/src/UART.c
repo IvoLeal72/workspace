@@ -59,19 +59,61 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 	switch(id){
 		case 0:
 			set_PCLK(UART_CCLK_DIVIDER, 0, 6);
+			if(options!=0) return false;
 			pinConfig(0, 2, 1, NEITHER, NORMAL);
 			pinConfig(0, 3, 1, NEITHER, NORMAL);
 			break;
 		case 1:
 			set_PCLK(UART_CCLK_DIVIDER, 0, 8);
+			switch(options){
+				case 0:
+					pinConfig(0, 15, 1, NEITHER, NORMAL);
+					pinConfig(0, 16, 1, NEITHER, NORMAL);
+					break;
+				case 1:
+					pinConfig(2, 0, 2, NEITHER, NORMAL);
+					pinConfig(2, 1, 2, NEITHER, NORMAL);
+					break;
+				default:
+					return false;
+			}
 			break;
 		case 2:
 			set_PCLK(UART_CCLK_DIVIDER, 1, 16);
+			switch(options){
+				case 0:
+					pinConfig(0, 10, 1, NEITHER, NORMAL);
+					pinConfig(0, 11, 1, NEITHER, NORMAL);
+					break;
+				case 1:
+					pinConfig(2, 8, 2, NEITHER, NORMAL);
+					pinConfig(2, 9, 2, NEITHER, NORMAL);
+					break;
+				default:
+					return false;
+			}
 			break;
 		case 3:
 			set_PCLK(UART_CCLK_DIVIDER, 1, 18);
+			switch(options){
+				case 0:
+					pinConfig(0, 0, 2, NEITHER, NORMAL);
+					pinConfig(0, 1, 2, NEITHER, NORMAL);
+					break;
+				case 1:
+					pinConfig(0, 25, 3, NEITHER, NORMAL);
+					pinConfig(0, 26, 3, NEITHER, NORMAL);
+					break;
+				case 2:
+					pinConfig(4, 28, 3, NEITHER, NORMAL);
+					pinConfig(4, 29, 3, NEITHER, NORMAL);
+					break;
+				default:
+					return false;
+			}
 			break;
 		default:
 			return false;
 	}
+
 }
