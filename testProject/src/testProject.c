@@ -16,39 +16,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "lcd.h"
+#include "UART.h"
+#include "led.h"
 #include "wait.h"
-#include "i2c.h"
-#include "EEPROM.h"
-#include "button.h"
-#define TEST_SIZE 40
-#define SUBS_TEST 5
 
 int main(void) {
-	WAIT_Init();
-	LCDText_Init();
-	BUTTON_Init();
-	LCDText_WriteString("Waiting");
-	BUTTON_Read();
-	int seed=WAIT_GetElapsedMillis(0);
-	LCDText_Clear();
-	srand(seed);
-	I2C_Init(1, 1);
-	char send[TEST_SIZE];
-	char rec[TEST_SIZE];
-	for(int i=0; i<TEST_SIZE; i++) send[i]=rand()%256;
-	LCDText_Printf("%d ", EEPROM_Write(31, send, TEST_SIZE));
-	LCDText_Printf("%d ", EEPROM_Read(31, rec, TEST_SIZE));
-	LCDText_Printf("%d\n", memcmp(send, rec, TEST_SIZE));
-	char test[SUBS_TEST];
-	for(int i=0; i<SUBS_TEST; i++){
-		test[i]=rand()%256;
-		send[i+3]=test[i];
+	//printf("UART Test\n");
+	//WAIT_Init();
+	//LED_Init(true);
+	UART_Initialize(2, 0, 115200);
+	int tstCh = '0';
+	while (1) {
+		LED_On();
+		UART_WriteChar(2,tstCh);
+		if (++tstCh > '9') tstCh = '0';
+		LED_Off();
+		printf("rx = %c\n", UART_ReadChar(2));
+		WAIT_Milliseconds(500);
 	}
-	LCDText_Printf("%d ", EEPROM_Write(34, test, SUBS_TEST));
-	LCDText_Printf("%d ", EEPROM_Read(31, rec, TEST_SIZE));
-	LCDText_Printf("%d\n", memcmp(send, rec, TEST_SIZE));
-
-	//printf("done\n");
-	while(true);
+	return 0;
 }

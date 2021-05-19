@@ -11,9 +11,21 @@
 #endif
 
 #include "UART.h"
+#include "Utils.h"
 
 #define UART_CTT 4
 #define UART_CCLK_DIVIDER 8
+#define UART_FCR_FIFO_EN 1
+#define UART_FCR_RX_RS 2
+#define UART_FCR_TX_RS 4
+#define UART_LSR_RDR 1
+#define UART_LSR_THRE (1<<5)
+#define UART_TER_TXEN (1<<7)
+#define UART_LCR_DLAB_EN (1<<7)
+#define UART_LCR_BREAK_EN (1<<6)
+#define UART_LCR_BITMASK 0xff
+#define UART_LCR_WLEN8 3
+
 
 struct UART_controller{
 	LPC_UART_TypeDef* perif;
@@ -56,23 +68,25 @@ void UART_WriteBuffer(int id, unsigned char *buffer, int len){
 }
 
 bool UART_Initialize(int id, int options, unsigned int baud){
+	int tmp2=5;
 	switch(id){
 		case 0:
+			tmp2++;
 			set_PCLK(UART_CCLK_DIVIDER, 0, 6);
 			if(options!=0) return false;
-			pinConfig(0, 2, 1, NEITHER, NORMAL);
-			pinConfig(0, 3, 1, NEITHER, NORMAL);
+			pin_Config(0, 2, 1, PULLUP, NORMAL);
+			pin_Config(0, 3, 1, PULLUP, NORMAL);
 			break;
 		case 1:
 			set_PCLK(UART_CCLK_DIVIDER, 0, 8);
 			switch(options){
 				case 0:
-					pinConfig(0, 15, 1, NEITHER, NORMAL);
-					pinConfig(0, 16, 1, NEITHER, NORMAL);
+					pin_Config(0, 15, 1, PULLUP, NORMAL);
+					pin_Config(0, 16, 1, PULLUP, NORMAL);
 					break;
 				case 1:
-					pinConfig(2, 0, 2, NEITHER, NORMAL);
-					pinConfig(2, 1, 2, NEITHER, NORMAL);
+					pin_Config(2, 0, 2, PULLUP, NORMAL);
+					pin_Config(2, 1, 2, PULLUP, NORMAL);
 					break;
 				default:
 					return false;
@@ -82,12 +96,12 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			set_PCLK(UART_CCLK_DIVIDER, 1, 16);
 			switch(options){
 				case 0:
-					pinConfig(0, 10, 1, NEITHER, NORMAL);
-					pinConfig(0, 11, 1, NEITHER, NORMAL);
+					pin_Config(0, 10, 1, PULLUP, NORMAL);
+					pin_Config(0, 11, 1, PULLUP, NORMAL);
 					break;
 				case 1:
-					pinConfig(2, 8, 2, NEITHER, NORMAL);
-					pinConfig(2, 9, 2, NEITHER, NORMAL);
+					pin_Config(2, 8, 2, PULLUP, NORMAL);
+					pin_Config(2, 9, 2, PULLUP, NORMAL);
 					break;
 				default:
 					return false;
@@ -97,16 +111,16 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			set_PCLK(UART_CCLK_DIVIDER, 1, 18);
 			switch(options){
 				case 0:
-					pinConfig(0, 0, 2, NEITHER, NORMAL);
-					pinConfig(0, 1, 2, NEITHER, NORMAL);
+					pin_Config(0, 0, 2, PULLUP, NORMAL);
+					pin_Config(0, 1, 2, PULLUP, NORMAL);
 					break;
 				case 1:
-					pinConfig(0, 25, 3, NEITHER, NORMAL);
-					pinConfig(0, 26, 3, NEITHER, NORMAL);
+					pin_Config(0, 25, 3, PULLUP, NORMAL);
+					pin_Config(0, 26, 3, PULLUP, NORMAL);
 					break;
 				case 2:
-					pinConfig(4, 28, 3, NEITHER, NORMAL);
-					pinConfig(4, 29, 3, NEITHER, NORMAL);
+					pin_Config(4, 28, 3, PULLUP, NORMAL);
+					pin_Config(4, 29, 3, PULLUP, NORMAL);
 					break;
 				default:
 					return false;
@@ -116,4 +130,64 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			return false;
 	}
 
+	int tmp;
+	UART_ctrl_arr[id].perif->FCR = ( UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS);
+	UART_ctrl_arr[id].perif->FCR = 0;
+
+	while (UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) {// Dummy reading - empty rx!
+		tmp = UART_ctrl_arr[id].perif->RBR;
+	}
+	UART_ctrl_arr[id].perif->TER = UART_TER_TXEN;
+	while (!(UART_ctrl_arr[id].perif->LSR & UART_LSR_THRE));
+
+	UART_ctrl_arr[id].perif->TER = 0;   // Disable Tx
+	UART_ctrl_arr[id].perif->IER = 0;// Disable interrupt
+	UART_ctrl_arr[id].perif->LCR = 0;// Set LCR to default state
+	UART_ctrl_arr[id].perif->ACR = 0;
+
+	if(id==1){
+		LPC_UART1->MCR=0;
+		LPC_UART1->RS485CTRL=0;
+		LPC_UART1->RS485DLY=0;
+		LPC_UART1->ADRMATCH=0;
+		tmp=LPC_UART1->MSR;
+	}
+
+	tmp = UART_ctrl_arr[id].perif->LSR;
+
+	double k=(double)SystemCoreClock/UART_CCLK_DIVIDER;
+	k/=16*baud;
+	int UnDL=(int)k;
+	if(UnDL>=1<<16) return false;
+	double rem=k-UnDL;
+	int best_add=0;
+	int best_mul=1;
+	double best_distance=0;
+	for(int mul=1; mul<=15; mul++){
+		for(int add=0; add<mul; add++){
+
+			double test_rem=(double)UnDL*(double)add/(double)mul;
+
+			double distance=test_rem-rem;
+			if(distance<0) distance=-distance;
+
+			if(mul==1 && add==0 || distance<best_distance){
+				best_add=add;
+				best_mul=mul;
+				best_distance=distance;
+			}
+		}
+	}
+	UART_ctrl_arr[id].perif->LCR|=UART_LCR_DLAB_EN;
+	UART_ctrl_arr[id].perif->DLM=UnDL>>8;
+	UART_ctrl_arr[id].perif->DLL=UnDL&0xff;
+	UART_ctrl_arr[id].perif->FDR=best_add|best_mul<<4;
+	UART_ctrl_arr[id].perif->LCR&=(~UART_LCR_DLAB_EN)&UART_LCR_BITMASK;
+
+	tmp = (UART_ctrl_arr[id].perif->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) & UART_LCR_BITMASK;
+	tmp |= UART_LCR_WLEN8;
+	UART_ctrl_arr[id].perif->LCR = (uint8_t) (tmp & UART_LCR_BITMASK);
+	UART_ctrl_arr[id].perif->TER |= UART_TER_TXEN;
+	//UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN;
+	return true;
 }
