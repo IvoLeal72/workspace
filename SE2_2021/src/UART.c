@@ -141,8 +141,8 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 	while (!(UART_ctrl_arr[id].perif->LSR & UART_LSR_THRE));
 
 	UART_ctrl_arr[id].perif->TER = 0;   // Disable Tx
-	UART_ctrl_arr[id].perif->IER = 0;// Disable interrupt
-	UART_ctrl_arr[id].perif->LCR = 0;// Set LCR to default state
+	UART_ctrl_arr[id].perif->IER = 0;	// Disable interrupt
+	UART_ctrl_arr[id].perif->LCR = 0;	// Set LCR to default state
 	UART_ctrl_arr[id].perif->ACR = 0;
 
 	if(id==1){
