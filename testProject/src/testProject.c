@@ -21,18 +21,16 @@
 #include "wait.h"
 
 int main(void) {
-	//printf("UART Test\n");
-	//WAIT_Init();
-	//LED_Init(true);
+	printf("UART Test\n");
+	WAIT_Init();
+	LED_Init(true);
 	UART_Initialize(2, 0, 115200);
-	int tstCh = '0';
-	while (1) {
+	char* testStr="O ivo teve dias a volta de um erro parvo\n";
+	while(*testStr) {
 		LED_On();
-		UART_WriteChar(2,tstCh);
-		if (++tstCh > '9') tstCh = '0';
+		UART_WriteChar(2,*testStr++);
 		LED_Off();
-		printf("rx = %c\n", UART_ReadChar(2));
-		WAIT_Milliseconds(500);
+		printf("%c", UART_ReadChar(2));
 	}
 	return 0;
 }

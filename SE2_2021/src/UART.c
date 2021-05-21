@@ -12,8 +12,13 @@
 
 #include "UART.h"
 #include "Utils.h"
+#include <stdint.h>
 
 #define UART_CTT 4
+#define UART0_PWR (1<<3)
+#define UART1_PWR (1<<4)
+#define UART2_PWR (1<<24)
+#define UART3_PWR (1<<25)
 #define UART_CCLK_DIVIDER 8
 #define UART_FCR_FIFO_EN 1
 #define UART_FCR_RX_RS 2
@@ -31,7 +36,7 @@ struct UART_controller{
 	LPC_UART_TypeDef* perif;
 };
 
-static struct UART_controller UART_ctrl_arr[UART_CTT]={{LPC_UART0}, {LPC_UART1}, {LPC_UART2}, {LPC_UART3}};
+static struct UART_controller UART_ctrl_arr[UART_CTT]={{(LPC_UART_TypeDef*)LPC_UART0}, {(LPC_UART_TypeDef*)LPC_UART1}, {LPC_UART2}, {LPC_UART3}};
 
 bool UART_GetChar(int id, unsigned char *ch){
 	if ((UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) == 0)
@@ -68,16 +73,16 @@ void UART_WriteBuffer(int id, unsigned char *buffer, int len){
 }
 
 bool UART_Initialize(int id, int options, unsigned int baud){
-	int tmp2=5;
 	switch(id){
 		case 0:
-			tmp2++;
+			LPC_SC->PCONP|=UART0_PWR;
 			set_PCLK(UART_CCLK_DIVIDER, 0, 6);
 			if(options!=0) return false;
 			pin_Config(0, 2, 1, PULLUP, NORMAL);
 			pin_Config(0, 3, 1, PULLUP, NORMAL);
 			break;
 		case 1:
+			LPC_SC->PCONP|=UART1_PWR;
 			set_PCLK(UART_CCLK_DIVIDER, 0, 8);
 			switch(options){
 				case 0:
@@ -93,6 +98,7 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			}
 			break;
 		case 2:
+			LPC_SC->PCONP|=UART2_PWR;
 			set_PCLK(UART_CCLK_DIVIDER, 1, 16);
 			switch(options){
 				case 0:
@@ -108,6 +114,7 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			}
 			break;
 		case 3:
+			LPC_SC->PCONP|=UART3_PWR;
 			set_PCLK(UART_CCLK_DIVIDER, 1, 18);
 			switch(options){
 				case 0:
@@ -131,6 +138,8 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 	}
 
 	int tmp;
+	UART_ctrl_arr[id].perif->LCR&=(~UART_LCR_DLAB_EN)&UART_LCR_BITMASK;
+
 	UART_ctrl_arr[id].perif->FCR = ( UART_FCR_FIFO_EN | UART_FCR_RX_RS | UART_FCR_TX_RS);
 	UART_ctrl_arr[id].perif->FCR = 0;
 
@@ -171,7 +180,7 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 			double distance=test_rem-rem;
 			if(distance<0) distance=-distance;
 
-			if(mul==1 && add==0 || distance<best_distance){
+			if((mul==1 && add==0) || distance<best_distance){
 				best_add=add;
 				best_mul=mul;
 				best_distance=distance;
