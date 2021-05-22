@@ -193,10 +193,8 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 	UART_ctrl_arr[id].perif->FDR=best_add|best_mul<<4;
 	UART_ctrl_arr[id].perif->LCR&=(~UART_LCR_DLAB_EN)&UART_LCR_BITMASK;
 
-	tmp = (UART_ctrl_arr[id].perif->LCR & (UART_LCR_DLAB_EN | UART_LCR_BREAK_EN)) & UART_LCR_BITMASK;
-	tmp |= UART_LCR_WLEN8;
-	UART_ctrl_arr[id].perif->LCR = (uint8_t) (tmp & UART_LCR_BITMASK);
-	UART_ctrl_arr[id].perif->TER |= UART_TER_TXEN;
-	//UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN;
+	UART_ctrl_arr[id].perif->LCR = (uint8_t)UART_LCR_WLEN8;
+	UART_ctrl_arr[id].perif->TER = UART_TER_TXEN;
+	UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN;
 	return true;
 }
