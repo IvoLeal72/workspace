@@ -12,7 +12,6 @@
 
 #include "UART.h"
 #include "Utils.h"
-#include <stdint.h>
 
 #define UART_CTT 4
 #define UART0_PWR (1<<3)
@@ -31,12 +30,71 @@
 #define UART_LCR_BITMASK 0xff
 #define UART_LCR_WLEN8 3
 
+#define UART_RBUFSIZE (1 << 11)
+#define RBUF_MASK (UART_RBUFSIZE-1)
+#define RBUF_IS_FULL(head, tail) ((tail&__RBUF_MASK)==((head+1)&__RBUF_MASK))
+#define RBUF_WILL_FULL(head, tail) ((tail&__RBUF_MASK)==((head+2)&__RBUF_MASK))
+#define RBUF_IS_EMPTY(head, tail) ((head&__RBUF_MASK)==(tail&__RBUF_MASK))
+#define RBUF_RESET(bufidx) (bufidx=0)
+#define RBUF_INCR(bufidx) (bufidx=(bufidx+1)&__RBUF_MASK)
+
 
 struct UART_controller{
 	LPC_UART_TypeDef* perif;
+	bool stopped;
+	__IO uint32_t txWrite;
+	__IO uint32_t txRead;
+	__IO uint32_t rxWrite;
+	__IO uint32_t rxRead;
+	__IO uint8_t tx[UART_RBUFSIZE];
+	__IO uint8_t rx[UART_RBUFSIZE];
 };
 
 static struct UART_controller UART_ctrl_arr[UART_CTT]={{(LPC_UART_TypeDef*)LPC_UART0}, {(LPC_UART_TypeDef*)LPC_UART1}, {LPC_UART2}, {LPC_UART3}};
+
+void UARTn_IRQHandler(int id){
+	uint32_t iir;
+	struct UART_controller* UARTx=&UART_ctrl_arr[id];
+	while(((iir=UARTx->perif->IIR) & UART_IIR_PENDING)==0){
+		switch(irr & UART_IIR_INTID_MASK){
+			case UART_IIR_INTID_RLS:
+
+				break;
+			case UART_IIR_INTID_RDA:
+			case UART_IIR_INTID_CTI:
+				while ((UARTx->perif->LSR & UART_LSR_RDR)!=0 && !RBUF_IS_FULL(UARTx->rxWrite, UARTx->rxRead)){
+					UARTx->rx[UARTx->rxWrite]=UARTx->perif->RBR;
+					RBUF_INCR(UARTx->rxWrite);
+				}
+				break;
+			case UART_IIR_INTID_THRE:
+				if(!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead)) stopped=true;
+				else{
+					while (!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && ((UARTx->perif->LSR & UART_LSR_THRE) != 0)) {
+						UARTx->perif->THR=UARTx->tx[UARTx->txRead];
+						RBUF_INCR(UARTx->txRead);
+					}
+				}
+				break;
+		}
+	}
+}
+
+void UART0_IRQHandler(void){
+	UARTn_IRQHandler(0);
+}
+
+void UART1_IRQHandler(void){
+	UARTn_IRQHandler(1);
+}
+
+void UART2_IRQHandler(void){
+	UARTn_IRQHandler(2);
+}
+
+void UART3_IRQHandler(void){
+	UARTn_IRQHandler(3);
+}
 
 bool UART_GetChar(int id, unsigned char *ch){
 	if ((UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) == 0)
@@ -54,6 +112,21 @@ unsigned char UART_ReadChar(int id){
 	return UART_ctrl_arr[id].perif->RBR;
 }
 
+void UART_ReadBuffer(int id, char* buff, size_t buffSize){
+	for(int i=0; i<buffSize; i++) buff[i]=UART_ReadChar(id);
+}
+
+void UART_ReadString(int id, char* str, size_t strSize){
+	char c;
+	int i;
+	for(i=0; i<strSize; i++){
+		c=UART_ReadChar(id);
+		if(c==0) break;
+		str[i]=c;
+	}
+	str[i]=0;
+}
+
 void UART_WriteChar(int id, unsigned char ch){
 	while ((UART_ctrl_arr[id].perif->LSR & UART_LSR_THRE) == 0);
 	UART_ctrl_arr[id].perif->THR = ch;
@@ -63,6 +136,7 @@ void UART_WriteString(int id, char *str){
 	while (*str) {
 		UART_WriteChar(id, *str++);
 	}
+	UART_WriteChar(id, 0);
 }
 
 void UART_WriteBuffer(int id, unsigned char *buffer, int len){

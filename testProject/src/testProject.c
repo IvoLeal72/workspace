@@ -16,21 +16,24 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "UART.h"
+#include <string.h>
+#include "pUART.h"
 #include "led.h"
 #include "wait.h"
+#include "lcd.h"
 
 int main(void) {
-	printf("UART Test\n");
 	WAIT_Init();
 	LED_Init(true);
-	UART_Initialize(2, 0, 115200);
-	char* testStr="O ivo teve dias a volta de um erro parvo\n";
-	while(*testStr) {
-		LED_On();
-		UART_WriteChar(2,*testStr++);
-		LED_Off();
-		printf("%c", UART_ReadChar(2));
-	}
+	LCDText_Init();
+	LCDText_Printf("UART Test\n");
+	pUART_Initialize(2, 0, 115200);
+	char* testStr="Frase de teste";
+	char strRec[strlen(testStr)+2];
+	LED_Off();
+	pUART_WriteString(2, testStr);
+	pUART_ReadString(2, strRec, strlen(testStr));
+	LED_On();
+	LCDText_Printf("%s\n", strRec);
 	return 0;
 }
