@@ -29,19 +29,32 @@
 #define UART_LCR_BREAK_EN (1<<6)
 #define UART_LCR_BITMASK 0xff
 #define UART_LCR_WLEN8 3
+#define UART_IIR_PENDING 1
+#define UART_IIR_INTID_MASK (0xE)
+#define UART_IIR_INTID_RLS 6
+#define UART_IIR_INTID_RDA 4
+#define UART_IIR_INTID_CTI 0xC
+#define UART_IIR_INTID_THRE 2
+#define UART_FCR_TRG_0 0
+#define UART_FCR_TRG_1 (1<<6)
+#define UART_FCR_TRG_2 (2<<6)
+#define UART_FCR_TRG_3 (3<<6)
+#define UART_IER_RBR 1
+#define UART_IER_RLS 4
+#define UART_IER_THRE 2
 
 #define UART_RBUFSIZE (1 << 11)
 #define RBUF_MASK (UART_RBUFSIZE-1)
-#define RBUF_IS_FULL(head, tail) ((tail&__RBUF_MASK)==((head+1)&__RBUF_MASK))
-#define RBUF_WILL_FULL(head, tail) ((tail&__RBUF_MASK)==((head+2)&__RBUF_MASK))
-#define RBUF_IS_EMPTY(head, tail) ((head&__RBUF_MASK)==(tail&__RBUF_MASK))
+#define RBUF_IS_FULL(wr, rd) ((rd&RBUF_MASK)==((wr+1)&RBUF_MASK))
+#define RBUF_WILL_FULL(wr, rd) ((rd&RBUF_MASK)==((wr+2)&RBUF_MASK))
+#define RBUF_IS_EMPTY(wr, rd) ((wr&RBUF_MASK)==(rd&RBUF_MASK))
 #define RBUF_RESET(bufidx) (bufidx=0)
-#define RBUF_INCR(bufidx) (bufidx=(bufidx+1)&__RBUF_MASK)
+#define RBUF_INCR(bufidx) (bufidx=(bufidx+1)&RBUF_MASK)
 
 
 struct UART_controller{
 	LPC_UART_TypeDef* perif;
-	bool stopped;
+	bool txStopped;
 	__IO uint32_t txWrite;
 	__IO uint32_t txRead;
 	__IO uint32_t rxWrite;
@@ -53,12 +66,14 @@ struct UART_controller{
 static struct UART_controller UART_ctrl_arr[UART_CTT]={{(LPC_UART_TypeDef*)LPC_UART0}, {(LPC_UART_TypeDef*)LPC_UART1}, {LPC_UART2}, {LPC_UART3}};
 
 void UARTn_IRQHandler(int id){
-	uint32_t iir;
+	uint32_t iir, lsr;
 	struct UART_controller* UARTx=&UART_ctrl_arr[id];
 	while(((iir=UARTx->perif->IIR) & UART_IIR_PENDING)==0){
-		switch(irr & UART_IIR_INTID_MASK){
+		switch(iir & UART_IIR_INTID_MASK){
 			case UART_IIR_INTID_RLS:
-
+				lsr=UARTx->perif->LSR;
+				for(;;);
+				(void) lsr;
 				break;
 			case UART_IIR_INTID_RDA:
 			case UART_IIR_INTID_CTI:
@@ -68,11 +83,15 @@ void UARTn_IRQHandler(int id){
 				}
 				break;
 			case UART_IIR_INTID_THRE:
-				if(!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead)) stopped=true;
+				if(RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && (UARTx->perif->LSR & UART_LSR_THRE)){
+					UARTx->txStopped=true;
+					UARTx->perif->IER = UART_IER_RBR | UART_IER_RLS;
+				}
 				else{
 					while (!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && ((UARTx->perif->LSR & UART_LSR_THRE) != 0)) {
 						UARTx->perif->THR=UARTx->tx[UARTx->txRead];
 						RBUF_INCR(UARTx->txRead);
+						UARTx->txStopped=false;
 					}
 				}
 				break;
@@ -96,54 +115,32 @@ void UART3_IRQHandler(void){
 	UARTn_IRQHandler(3);
 }
 
-bool UART_GetChar(int id, unsigned char *ch){
-	if ((UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) == 0)
-		return false;
-	*ch = UART_ctrl_arr[id].perif->RBR;
-	return true;
-}
-
-bool UART_IsChar(int id){
-	return (UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) != 0;
-}
-
-unsigned char UART_ReadChar(int id){
-	while ((UART_ctrl_arr[id].perif->LSR & UART_LSR_RDR) == 0);
-	return UART_ctrl_arr[id].perif->RBR;
-}
-
-void UART_ReadBuffer(int id, char* buff, size_t buffSize){
-	for(int i=0; i<buffSize; i++) buff[i]=UART_ReadChar(id);
-}
-
-void UART_ReadString(int id, char* str, size_t strSize){
-	char c;
-	int i;
-	for(i=0; i<strSize; i++){
-		c=UART_ReadChar(id);
-		if(c==0) break;
-		str[i]=c;
+uint32_t UART_WriteBuffer(int id, uint8_t *buffer, uint32_t len){
+	uint32_t bytes=0;
+	struct UART_controller* UARTx=&UART_ctrl_arr[id];
+	if(UARTx->txStopped){
+		bytes++;
 	}
-	str[i]=0;
-}
-
-void UART_WriteChar(int id, unsigned char ch){
-	while ((UART_ctrl_arr[id].perif->LSR & UART_LSR_THRE) == 0);
-	UART_ctrl_arr[id].perif->THR = ch;
-}
-
-void UART_WriteString(int id, char *str){
-	while (*str) {
-		UART_WriteChar(id, *str++);
+	while(!RBUF_IS_FULL(UARTx->txWrite, UARTx->txRead) && bytes<len){
+		UARTx->tx[UARTx->txWrite]=buffer[bytes++];
+		RBUF_INCR(UARTx->txWrite);
 	}
-	UART_WriteChar(id, 0);
+	if(UARTx->txStopped){
+		UARTx->perif->THR=buffer[0];
+		UARTx->perif->IER=UART_IER_RBR | UART_IER_RLS | UART_IER_THRE;
+	}
+	return bytes;
 }
 
-void UART_WriteBuffer(int id, unsigned char *buffer, int len){
-	int i;
-	for (i = 0; i < len; i++){
-		UART_WriteChar(id, *buffer++);
+uint32_t UART_ReadBuffer(int id, uint8_t *buffer, uint32_t len){
+	uint32_t bytes=0;
+	struct UART_controller* UARTx=&UART_ctrl_arr[id];
+	while(!RBUF_IS_EMPTY(UARTx->rxWrite, UARTx->rxRead) && bytes<len){
+		buffer[bytes]=UARTx->rx[UARTx->rxRead];
+		RBUF_INCR(UARTx->rxRead);
+		bytes++;
 	}
+	return bytes;
 }
 
 bool UART_Initialize(int id, int options, unsigned int baud){
@@ -269,6 +266,25 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 
 	UART_ctrl_arr[id].perif->LCR = (uint8_t)UART_LCR_WLEN8;
 	UART_ctrl_arr[id].perif->TER = UART_TER_TXEN;
-	UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN;
+	UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN | UART_FCR_TRG_0;
+	UART_ctrl_arr[id].txStopped=true;
+	RBUF_RESET(UART_ctrl_arr[id].rxWrite);
+	RBUF_RESET(UART_ctrl_arr[id].rxRead);
+	RBUF_RESET(UART_ctrl_arr[id].txWrite);
+	RBUF_RESET(UART_ctrl_arr[id].txRead);
+
+	UART_ctrl_arr[id].perif->IER=UART_IER_RBR | UART_IER_RLS;
+
+	uint32_t iir;
+	iir=UART_ctrl_arr[id].perif->IIR & UART_IIR_INTID_MASK;
+	while((iir == UART_IIR_INTID_RDA) || (iir == UART_IIR_INTID_CTI)){
+		tmp=UART_ctrl_arr[id].perif->RBR;
+		iir=UART_ctrl_arr[id].perif->IIR & UART_IIR_INTID_MASK;
+	}
+
+	(void) tmp;
+
+
+	NVIC_EnableIRQ(UART0_IRQn+id);
 	return true;
 }
