@@ -42,6 +42,7 @@
 #define UART_IER_RBR 1
 #define UART_IER_RLS 4
 #define UART_IER_THRE 2
+#define UART_IER_MASK 0x307
 
 #define UART_RBUFSIZE (1 << 11)
 #define RBUF_MASK (UART_RBUFSIZE-1)
@@ -72,7 +73,7 @@ void UARTn_IRQHandler(int id){
 		switch(iir & UART_IIR_INTID_MASK){
 			case UART_IIR_INTID_RLS:
 				lsr=UARTx->perif->LSR;
-				for(;;);
+				//for(;;);
 				(void) lsr;
 				break;
 			case UART_IIR_INTID_RDA:
@@ -85,7 +86,7 @@ void UARTn_IRQHandler(int id){
 			case UART_IIR_INTID_THRE:
 				if(RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && (UARTx->perif->LSR & UART_LSR_THRE)){
 					UARTx->txStopped=true;
-					UARTx->perif->IER = UART_IER_RBR | UART_IER_RLS;
+					UARTx->perif->IER = UARTx->perif->IER & ~UART_IER_THRE & UART_IER_MASK;
 				}
 				else{
 					while (!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && ((UARTx->perif->LSR & UART_LSR_THRE) != 0)) {
@@ -118,16 +119,14 @@ void UART3_IRQHandler(void){
 uint32_t UART_WriteBuffer(int id, uint8_t *buffer, uint32_t len){
 	uint32_t bytes=0;
 	struct UART_controller* UARTx=&UART_ctrl_arr[id];
-	if(UARTx->txStopped){
-		bytes++;
-	}
 	while(!RBUF_IS_FULL(UARTx->txWrite, UARTx->txRead) && bytes<len){
 		UARTx->tx[UARTx->txWrite]=buffer[bytes++];
 		RBUF_INCR(UARTx->txWrite);
 	}
 	if(UARTx->txStopped){
-		UARTx->perif->THR=buffer[0];
-		UARTx->perif->IER=UART_IER_RBR | UART_IER_RLS | UART_IER_THRE;
+		UARTx->perif->THR=UARTx->tx[UARTx->txRead];
+		RBUF_INCR(UARTx->txRead);
+		UARTx->perif->IER|=UART_IER_THRE;
 	}
 	return bytes;
 }
@@ -277,8 +276,12 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 
 	uint32_t iir;
 	iir=UART_ctrl_arr[id].perif->IIR & UART_IIR_INTID_MASK;
-	while((iir == UART_IIR_INTID_RDA) || (iir == UART_IIR_INTID_CTI)){
-		tmp=UART_ctrl_arr[id].perif->RBR;
+	while(1){
+		if((iir == UART_IIR_INTID_RDA) || (iir == UART_IIR_INTID_CTI))
+			tmp=UART_ctrl_arr[id].perif->RBR;
+		else if(iir==UART_IIR_INTID_RLS)
+			tmp=UART_ctrl_arr[id].perif->LSR;
+		else break;
 		iir=UART_ctrl_arr[id].perif->IIR & UART_IIR_INTID_MASK;
 	}
 
