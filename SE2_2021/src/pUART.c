@@ -204,6 +204,9 @@ bool pUART_Initialize(int id, int options, unsigned int baud){
 			}
 		}
 	}
+
+	(void) tmp;
+
 	pUARTx->LCR|=pUART_LCR_DLAB_EN;
 	pUARTx->DLM=UnDL>>8;
 	pUARTx->DLL=UnDL&0xff;

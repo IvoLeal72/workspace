@@ -32,23 +32,19 @@
  * @note  	This function must be called prior to any other LED functions,
  * 			and use the pins P0[22] resource.
  */
-void LED_Init(bool state);
+void LED_Init(char state);
 
 /**
- * @brief	Reads the led state.
- * @return	Returns true if led is on, false if led is off.
+ * @brief	Reads the leds states.
+ * @return	Bitmap with RGB
  */
-bool LED_GetState(void);
+char LED_GetState(void);
 
 /**
- * @brief	Turns the led on.
+ * @brief	Sets the leds state.
  */
-void LED_On(void);
+void LED_SetState(char state);
 
-/**
- * @brief	Turns the led off.
- */
-void LED_Off(void);
 
 /**
  * @}
