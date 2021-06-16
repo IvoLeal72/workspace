@@ -28,6 +28,14 @@ int ESP_ListAp(WIFI_NETWORK list[], size_t max);
 
 int ESP_SetAp(WIFI_NETWORK network, bool useMac);
 
-ESP_DATA* ESP_GetData();
+ESP_DATA* ESP_RemoteReceive();
+
+bool ESP_RemoteStart(char* type, char* addr, unsigned int port, unsigned int keep_alive);
+
+bool ESP_RemoteSend(char* data, size_t length);
+
+bool ESP_RemoteStop();
+
+bool ESP_WaitForIPD(uint32_t timeout);
 
 #endif /* ESP8266_H_ */

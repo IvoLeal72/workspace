@@ -127,6 +127,9 @@ bool ESP_Init(){
 	ESP_SendCommand("AT+CIPDINFO=0\r\n");
 	if(!ESP_WaitForOk(CHAR_TIMEOUT)) return false;
 
+	ESP_SendCommand("AT+CIPDNS_CUR=1,\"8.8.8.8\",\"8.8.4.4\"\r\n");
+	if(!ESP_WaitForOk(CHAR_TIMEOUT)) return false;
+
 	return true;
 }
 
@@ -154,7 +157,7 @@ int ESP_ListAp(WIFI_NETWORK list[], size_t max){
 	ESP_SendCommand("AT+CWLAP\r\n");
 	char buffer[4096]={0};
 	size_t rec;
-	int res=ESP_ReceiveData(buffer, 4095, &rec, 10*CHAR_TIMEOUT);
+	int res=ESP_ReceiveData(buffer, 4095, &rec, 20*CHAR_TIMEOUT);
 	if(res<0) return res;
 	int ctt=0;
 	for(int i=0; i<rec; i++)
@@ -190,7 +193,7 @@ int ESP_SetAp(WIFI_NETWORK network, bool useMac){
 	return res;
 }
 
-ESP_DATA* ESP_GetData(){
+ESP_DATA* ESP_RemoteReceive(){
 	if(head==NULL) return NULL;
 	ESP_DATA* data=malloc(sizeof(ESP_DATA));
 	if(data==NULL)
@@ -202,6 +205,62 @@ ESP_DATA* ESP_GetData(){
 	head=old_head->next;
 	free(old_head);
 	return data;
+}
+
+bool ESP_RemoteStart(char* type, char* addr, unsigned int port, unsigned int keep_alive){
+	char str[2048];
+	sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d,%d\r\n", type, addr, port, keep_alive);
+	ESP_SendCommand(str);
+	size_t rec=0;
+	int ret=ESP_ReceiveData(str, 2047, &rec, 10*CHAR_TIMEOUT);
+	if(ret==0) return true;
+	if(rec<19) return false;
+	if(memcmp(str+rec-20, "ALREADY CONNECTED\r\n", 19)==0) return true;
+	return false;
+}
+
+bool ESP_RemoteSend(char* data, size_t length){
+	char str[18]={0};
+	if(length>2048) length=2048;
+	sprintf(str, "AT+CIPSEND=%d\r\n", length);
+	ESP_SendCommand(str);
+	char tmp=0;
+	size_t rec=0;
+	while(tmp!='>' || rec!=1){
+		if(ESP_ReceiveData(&tmp, 1, &rec, 20*CHAR_TIMEOUT)==-2)
+			return false;
+	}
+	ESP_SendData(data, length);
+	return ESP_WaitForOk(20*CHAR_TIMEOUT);
+}
+
+bool ESP_RemoteStop(){
+	ESP_SendCommand("AT+CIPCLOSE\r\n");
+	return ESP_WaitForOk(10*CHAR_TIMEOUT);
+}
+
+char buffer[20];
+
+bool ESP_WaitForIPD(uint32_t timeout){
+	if(head!=NULL) return true;
+	char tmp=0;
+	bool received=false;
+	WAIT_Milliseconds(10000);
+	UART_ReadBuffer(UART_ID, buffer, 20);
+	uint32_t lastTime=WAIT_GetElapsedMillis(0);
+	while(!received){
+		if(UART_ReadBuffer(UART_ID, (unsigned char*)&tmp, 1)==1){
+			memmove(lastReads, lastReads+1, 4);
+			lastReads[4]=tmp;
+			if(strcmp(lastReads, "+IPD,")==0){
+				ESP_GotIPD();
+				received=true;
+			}
+			lastTime=WAIT_GetElapsedMillis(0);
+		}
+		if(WAIT_GetElapsedMillis(lastTime)>timeout) return false;
+	}
+	return true;
 }
 
 
