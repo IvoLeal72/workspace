@@ -25,7 +25,7 @@ struct _ipdNode{
 	size_t buff_size;
 };
 
-struct _ipdNode* head=NULL;
+static struct _ipdNode* head=NULL;
 
 static char lastReads[6]={0};
 
@@ -60,7 +60,10 @@ static void ESP_GotIPD(){
 	new->next=NULL;
 	new->buffer=buff;
 	new->buff_size=size;
-	if(head==NULL) head=new;
+	if(head==NULL){ 
+		head=new;
+		return;
+	}
 	struct _ipdNode* node=head;
 	while(node->next != NULL)
 		node=node->next;
@@ -207,9 +210,9 @@ ESP_DATA* ESP_RemoteReceive(){
 	return data;
 }
 
-bool ESP_RemoteStart(char* type, char* addr, unsigned int port, unsigned int keep_alive){
+bool ESP_RemoteStart(char* type, char* addr, unsigned int port){
 	char str[2048];
-	sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d,%d\r\n", type, addr, port, keep_alive);
+	sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", type, addr, port);
 	ESP_SendCommand(str);
 	size_t rec=0;
 	int ret=ESP_ReceiveData(str, 2047, &rec, 10*CHAR_TIMEOUT);
@@ -230,7 +233,12 @@ bool ESP_RemoteSend(char* data, size_t length){
 		if(ESP_ReceiveData(&tmp, 1, &rec, 20*CHAR_TIMEOUT)==-2)
 			return false;
 	}
+	while(tmp!=' ' || rec!=1){
+		if(ESP_ReceiveData(&tmp, 1, &rec, 20*CHAR_TIMEOUT)==-2)
+			return false;
+	}
 	ESP_SendData(data, length);
+	return true;
 	return ESP_WaitForOk(20*CHAR_TIMEOUT);
 }
 
@@ -245,8 +253,8 @@ bool ESP_WaitForIPD(uint32_t timeout){
 	if(head!=NULL) return true;
 	char tmp=0;
 	bool received=false;
-	WAIT_Milliseconds(10000);
-	UART_ReadBuffer(UART_ID, buffer, 20);
+//	WAIT_Milliseconds(10000);
+//	UART_ReadBuffer(UART_ID, (unsigned char*)buffer, 20);
 	uint32_t lastTime=WAIT_GetElapsedMillis(0);
 	while(!received){
 		if(UART_ReadBuffer(UART_ID, (unsigned char*)&tmp, 1)==1){

@@ -6,9 +6,7 @@
  */
 
 
-#ifdef __USE_CMSIS
-	#include "LPC17xx.h"
-#endif
+#include "LPC17xx.h"
 
 #include "UART.h"
 #include "Utils.h"
@@ -89,11 +87,9 @@ void UARTn_IRQHandler(int id){
 					UARTx->perif->IER = UARTx->perif->IER & ~UART_IER_THRE & UART_IER_MASK;
 				}
 				else{
-					while (!RBUF_IS_EMPTY(UARTx->txWrite, UARTx->txRead) && ((UARTx->perif->LSR & UART_LSR_THRE) != 0)) {
-						UARTx->perif->THR=UARTx->tx[UARTx->txRead];
-						RBUF_INCR(UARTx->txRead);
-						UARTx->txStopped=false;
-					}
+					UARTx->perif->THR=UARTx->tx[UARTx->txRead];
+					RBUF_INCR(UARTx->txRead);
+					UARTx->txStopped=false;
 				}
 				break;
 		}
@@ -265,8 +261,8 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 
 	UART_ctrl_arr[id].perif->LCR = (uint8_t)UART_LCR_WLEN8;
 	UART_ctrl_arr[id].perif->TER = UART_TER_TXEN;
-	//UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN | UART_FCR_TRG_0;
-	UART_ctrl_arr[id].perif->FCR=0;
+	UART_ctrl_arr[id].perif->FCR=UART_FCR_FIFO_EN | UART_FCR_TRG_0;
+	//UART_ctrl_arr[id].perif->FCR=0;
 	UART_ctrl_arr[id].txStopped=true;
 	RBUF_RESET(UART_ctrl_arr[id].rxWrite);
 	RBUF_RESET(UART_ctrl_arr[id].rxRead);
@@ -288,7 +284,7 @@ bool UART_Initialize(int id, int options, unsigned int baud){
 
 	(void) tmp;
 
-	NVIC_SetPriority(UART0_IRQn+id, 0x9);
+	//NVIC_SetPriority(UART0_IRQn+id, 0x9);
 	NVIC_EnableIRQ(UART0_IRQn+id);
 	return true;
 }

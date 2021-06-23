@@ -8,11 +8,7 @@
 ===============================================================================
 */
 
-#ifdef __USE_CMSIS
 #include "LPC17xx.h"
-#endif
-
-#include <cr_section_macros.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,17 +32,19 @@ int main(void) {
 		printf("%d ; name: %s ; mac: %s\n", wifi_list[i].secur, wifi_list[i].ssid, wifi_list[i].mac);
 	}*/
 	WIFI_NETWORK con;
-	strcpy(con.ssid, "HUAWEI");
-	strcpy(con.pwd, "12345678");
+	strcpy(con.ssid, "NOS-LEAL 2");
+	strcpy(con.pwd, "leal697121");
 	con.secur=4;
+	char *testStr="123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n";
 	printf("%d\n", ESP_SetAp(con, false));
-	printf("%s\n", ESP_RemoteStart("TCP", "iot-se2021.ddns.net", 8090, 0)?"TRUE":"FALSE");
-	printf("%s\n", ESP_RemoteSend("GET / \r\n\r\n", 37)?"TRUE":"FALSE");
+	printf("%s\n", ESP_RemoteStart("TCP", "192.168.1.17", 54321)?"TRUE":"FALSE");
+	printf("%s\n", ESP_RemoteSend(testStr, strlen(testStr))?"TRUE":"FALSE");
 	LED_SetState(0);
 	while(!ESP_WaitForIPD(60000));
 	LED_SetState(0b10);
 	ESP_DATA* data=NULL;
 	data=ESP_RemoteReceive();
-	for(int i=0; i<data->buff_size; i++) putchar(data->buffer[i]);
+	printf("%s\n", ESP_RemoteStop()?"TRUE":"FALSE");
+	printf("%s\n", memcmp(testStr, data->buffer, strlen(testStr))==0?"TRUE":"FALSE");
 	return 0;
 }

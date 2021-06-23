@@ -5,11 +5,8 @@
  *      Author: ivogc
  */
 
-#ifdef __USE_CMSIS
 #include "LPC17xx.h"
-#endif
 
-#include <cr_section_macros.h>
 #include "gameUtils.h"
 #include <string.h>
 #include <stdlib.h>

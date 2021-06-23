@@ -30,7 +30,7 @@ int ESP_SetAp(WIFI_NETWORK network, bool useMac);
 
 ESP_DATA* ESP_RemoteReceive();
 
-bool ESP_RemoteStart(char* type, char* addr, unsigned int port, unsigned int keep_alive);
+bool ESP_RemoteStart(char* type, char* addr, unsigned int port);
 
 bool ESP_RemoteSend(char* data, size_t length);
 
