@@ -4,70 +4,29 @@
 
 /* Kernel includes. */
 #include "FreeRTOS.h"
-
+#include "semphr.h"
 #include "task.h"
-#include "queue.h"
-#include "led.h"
-#include "lcd.h"
-#include "esp8266.h"
-#include "wait.h"
 
-QueueHandle_t xQueue;
+SemaphoreHandle_t sem;
 
-void ledTask(void* params){
-	(void) params;
-	unsigned int i;
-
-	for(;;){
-		xQueueReceive(xQueue, &i, -1);
-		if(i%4==0) LED_On();
-		else LED_Off();
-	}
+void task1(void* parameters){
+	sem=xSemaphoreCreateBinary();
+	if(sem==NULL) printf("NOT CREATED!\n");
+	for(;;);
 }
 
-void timerTask(void* params){
-	(void) params;
-	char a='4';
-
-	for(;;){
-		//vTaskDelay(pdMS_TO);
-		xQueueSend(xQueue, &a, -1);
-	}
-}
-
-void testTask(void* params){
-	WAIT_Init();
-	LED_Init(0b100);
-	LED_SetState(ESP_Init());
-	/*WIFI_NETWORK wifi_list[40];
-	wifi_list[0].secur=6;
-	int res=ESP_ListAp(wifi_list, 40);
-	if(res<0) printf("retornou erro %d\n", res);
-	putchar(10);
-	for(int i=0; i<res; i++){
-		printf("%d ; name: %s ; mac: %s\n", wifi_list[i].secur, wifi_list[i].ssid, wifi_list[i].mac);
-	}*/
-	WIFI_NETWORK con;
-	strcpy(con.ssid, "NOS-LEAL 2");
-	strcpy(con.pwd, "leal697121");
-	con.secur=4;
-	char *testStr="123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n123456789\n";
-	printf("%d\n", ESP_SetAp(con, false));
-	printf("%s\n", ESP_RemoteStart("TCP", "192.168.1.17", 54321)?"TRUE":"FALSE");
-	printf("%s\n", ESP_RemoteSend(testStr, strlen(testStr))?"TRUE":"FALSE");
-	LED_SetState(0);
-	while(!ESP_WaitForIPD(60000));
-	LED_SetState(0b10);
-	ESP_DATA* data=NULL;
-	data=ESP_RemoteReceive();
-	printf("%s\n", ESP_RemoteStop()?"TRUE":"FALSE");
-	printf("%s\n", memcmp(testStr, data->buffer, strlen(testStr))==0?"TRUE":"FALSE");
+void task2(void* parameters){
+	while(sem==NULL);
+	xSemaphoreTake(sem, portMAX_DELAY);
+	printf("Taken!!\n");
+	for(;;);
 }
 
 int main(void)
 {
 
-	xTaskCreate(testTask, "testTask", 64*configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+	xTaskCreate(task1, "task1", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	xTaskCreate(task2, "task2", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 	/* Create tasks */
 	vTaskStartScheduler();
 	return 0;
