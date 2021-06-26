@@ -6,27 +6,34 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
+#include "wait.h"
+#include "RTOS_LCD.h"
+#include "RTOS_Buttons.h"
 
 SemaphoreHandle_t sem;
 
 void task1(void* parameters){
-	sem=xSemaphoreCreateBinary();
-	if(sem==NULL) printf("NOT CREATED!\n");
-	for(;;);
-}
-
-void task2(void* parameters){
-	while(sem==NULL);
-	xSemaphoreTake(sem, portMAX_DELAY);
-	printf("Taken!!\n");
-	for(;;);
+	WAIT_Milliseconds(100);
+	char bits[7];
+	bits[6]=0;
+	int buttons=0;
+	while(1){
+		buttons=RTOS_Buttons_GetEvents(portMAX_DELAY);
+		if(buttons==-1) for(;;);
+		for(int i=0; i<6; i++){
+			bits[i]=(buttons&(0x20>>i))?'1':'0';
+		}
+		RTOS_LCD_LocatedPrint(0,0, bits, true);
+	}
 }
 
 int main(void)
 {
-
+	WAIT_Init();
+	RTOS_LCD_Init();
+	RTOS_Buttons_Init();
 	xTaskCreate(task1, "task1", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
-	xTaskCreate(task2, "task2", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+
 	/* Create tasks */
 	vTaskStartScheduler();
 	return 0;

@@ -8,6 +8,8 @@
 #ifndef EEPROM_H_
 #define EEPROM_H_
 
+#include "LPC17xx.h"
+
 int EEPROM_Write(short addr, char* data, size_t data_size);
 
 int EEPROM_Read(short addr, char* data, size_t data_size);

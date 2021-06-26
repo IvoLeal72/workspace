@@ -10,6 +10,8 @@
 
 #include <stdbool.h>
 
+bool RTOS_LCD_Init();
+
 void RTOS_LCD_CreateChar(unsigned char location, unsigned char charmap[8]);
 
 void RTOS_LCD_SetCursor(bool state);

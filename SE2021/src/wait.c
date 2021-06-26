@@ -5,9 +5,7 @@
  *      Author: psampaio
  */
 
-#ifdef __USE_CMSIS
 #include "LPC17xx.h"
-#endif
 
 #include "wait.h"
 
@@ -20,7 +18,7 @@ void SysTick_Handler(void)
 	__ms++;
 }
 
-void WAIT_Milliseconds(uint32_t millis)
+/*void WAIT_Milliseconds(uint32_t millis)
 {
 	uint32_t start = __ms;
 	while ((__ms - start) < millis) {
@@ -46,7 +44,7 @@ uint32_t WAIT_GetElapsedMillis(uint32_t start)
 {
 	return __ms - start;
 }
-
+*/
 void WAIT_ChronoUs(uint32_t waitUs){
 	LPC_TIM0->MR0 = waitUs*10;
 	LPC_TIM0->IR =1;

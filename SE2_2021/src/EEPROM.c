@@ -6,9 +6,7 @@
  */
 
 
-#ifdef __USE_CMSIS
-	#include "LPC17xx.h"
-#endif
+#include "LPC17xx.h"
 
 #include "i2c.h"
 #include "EEPROM.h"
