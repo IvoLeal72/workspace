@@ -8,8 +8,13 @@
 #include "LPC17xx.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
+#include "queue.h"
 #include "lcd.h"
+#include "wait.h"
 #include "RTOS_LCD.h"
+#include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
 
 typedef enum{WriteChar, Locate, WriteString, Clear, CreateChar, SetCursor} CMD;
 
@@ -30,10 +35,6 @@ typedef struct{
 		unsigned char charmap[8];
 	};
 }LCD_CMD;
-
-bool RTOS_LCD_Init(){
-	return xTaskCreate(lcdHandler, "lcdHandler", configMINIMAL_STACK_SIZE, NULL, 2, NULL)==pdPASS;
-}
 
 static void lcdHandler(void* params){
 	mutex=xSemaphoreCreateMutex();
@@ -57,6 +58,10 @@ static void lcdHandler(void* params){
 			case SetCursor: LCDText_SetCursor(command.state); break;
 		}
 	}
+}
+
+bool RTOS_LCD_Init(){
+	return xTaskCreate(lcdHandler, "lcdHandler", configMINIMAL_STACK_SIZE, NULL, 2, NULL)==pdPASS;
 }
 
 static void RTOS_LCD_Lock(){
@@ -118,6 +123,7 @@ void RTOS_LCD_SetCursor(bool state){
 	LCD_CMD command;
 	command.cmd=SetCursor;
 	command.state=state;
+	sendCMD(&command);
 	RTOS_LCD_Unlock();
 }
 

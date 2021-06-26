@@ -9,9 +9,7 @@
 #include "i2c.h"
 #include "Utils.h"
 
-#ifdef __USE_CMSIS
-	#include "LPC17xx.h"
-#endif
+#include "LPC17xx.h"
 
 #define I2C_CCLK_DIVIDER 8
 #define TIMEOUT 1000
