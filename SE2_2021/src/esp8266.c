@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "FreeRTOS.h"
+#include "task.h"
 
 #define UART_ID 2
 #define UART_OPT 0
@@ -49,12 +51,12 @@ static void ESP_GotIPD(){
 			size=size*10+tmp-'0';
 		}
 	}
-	char* buff=malloc(size*sizeof(char));
+	char* buff=pvPortMalloc(size*sizeof(char));
 	if(buff==NULL)
 		for(;;);
 	for(int i=0; i<size;)
 		i+=UART_ReadBuffer(UART_ID, (unsigned char*)buff+i, size-i);
-	struct _ipdNode* new=malloc(sizeof(struct _ipdNode));
+	struct _ipdNode* new=pvPortMalloc(sizeof(struct _ipdNode));
 	if(new==NULL)
 		for(;;);
 	new->next=NULL;
@@ -198,7 +200,7 @@ int ESP_SetAp(WIFI_NETWORK network, bool useMac){
 
 ESP_DATA* ESP_RemoteReceive(){
 	if(head==NULL) return NULL;
-	ESP_DATA* data=malloc(sizeof(ESP_DATA));
+	ESP_DATA* data=pvPortMalloc(sizeof(ESP_DATA));
 	if(data==NULL)
 		for(;;);
 	data->buffer=head->buffer;
@@ -206,13 +208,14 @@ ESP_DATA* ESP_RemoteReceive(){
 
 	struct _ipdNode* old_head=head;
 	head=old_head->next;
-	free(old_head);
+	vPortFree(old_head);
 	return data;
 }
 
-bool ESP_RemoteStart(char* type, char* addr, unsigned int port){
+bool ESP_RemoteStart(char* type, char* addr, unsigned int port, unsigned int keep_alive){
 	char str[2048];
-	sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", type, addr, port);
+	if(strcmp(type, "TCP")==0) sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d,%d\r\n", type, addr, port, keep_alive);
+	else sprintf(str, "AT+CIPSTART=\"%s\",\"%s\",%d\r\n", type, addr, port);
 	ESP_SendCommand(str);
 	size_t rec=0;
 	int ret=ESP_ReceiveData(str, 2047, &rec, 10*CHAR_TIMEOUT);

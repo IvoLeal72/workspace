@@ -49,7 +49,7 @@ uint32_t NTP_GetTime(){
     data.stratum=DEFAULT_STRATUM;
     data.poll=DEFAULT_POLL;
     data.precision=DEFAULT_PRECISION;
-    if(!ESP_RemoteStart("UDP", "pool.ntp.org", 123)) return 0;
+    if(!ESP_RemoteStart("UDP", "pool.ntp.org", 123, 0)) return 0;
     if(!ESP_RemoteSend((char*)&data, sizeof(data))) return 0;
     if(!ESP_WaitForIPD(15000)) return 0;
     ESP_DATA* rec=ESP_RemoteReceive();
