@@ -20,7 +20,9 @@ void RTOS_LCD_LocatedChar(int row, int column, char ch, bool clear);
 
 void RTOS_LCD_LocatedPrint(int row, int column, char* str, bool clear);
 
-void RTOS_LCD_Printf(int row, int column, bool clear, char *fmt, ...);
+void RTOS_LCD_LocatedPrintf(int row, int column, bool clear, char *fmt, ...);
 
+void RTOS_LCD_Locate(int row, int column);
+void RTOS_LCD_Clear();
 
 #endif /* RTOS_LCD_H_ */

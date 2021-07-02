@@ -23,7 +23,13 @@ media you might have */
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "transport.h"
+#include <transport.h>
+#include "MQTTPacket.h"
+#include "MQTTConnect.h"
+#include "MQTTPublish.h"
+#include "MQTTSubscribe.h"
+#include "MQTTUnsubscribe.h"
+#include "MQTTFormat.h"
 
 /**
 This simple low-level implementation assumes a single connection for a single thread. Thus, single static
@@ -53,7 +59,7 @@ int len;
 
 	/* you should have called open() with a valid pointer to a valid struct and 
 	called sendPacketBuffernb_start with a valid buffer, before calling this */
-	assert((myio != NULL) && (myio->send != NULL) && (from != NULL));
+	//assert((myio != NULL) && (myio->send != NULL) && (from != NULL));
 	if((len = myio->send(from, howmany)) > 0){
 		from += len;
 		if((howmany -= len) <= 0){
@@ -93,7 +99,7 @@ transport_iofunctions_t *myio = io;	// io[sock] or mystruct[sock].io
 	int len;
 	
 	/* you should have called open() with a valid pointer to a valid struct before calling this */
-	assert((myio != NULL) && (myio->recv != NULL));
+	//assert((myio != NULL) && (myio->recv != NULL));
 	/* this call will return immediately if no bytes, or return whatever outstanding bytes we have,
 	 upto count */
 	if((len = myio->recv(buf, count)) >= 0)

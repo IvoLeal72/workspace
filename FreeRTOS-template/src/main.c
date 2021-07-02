@@ -11,11 +11,6 @@
 #include "RTOS_Buttons.h"
 #include "esp8266.h"
 #include "MQTTPacket.h"
-#include "MQTTConnect.h"
-#include "MQTTPublish.h"
-#include "MQTTSubscribe.h"
-#include "MQTTUnsubscribe.h"
-#include "MQTTFormat.h"
 
 SemaphoreHandle_t sem;
 
@@ -34,18 +29,14 @@ void task1(void* parameters){
 	}
 }
 
+void gameTask(void*);
+
 int main(void)
 {
 	WAIT_Init();
 	RTOS_LCD_Init();
 	RTOS_Buttons_Init();
-	ESP_Init();
-	WIFI_NETWORK conn;
-	strcpy(conn.ssid, "NOS-LEAL 2");
-	strcpy(conn.pwd, "leal697121");
-	conn.secur=3;
-	ESP_SetAp(conn, false);
-	xTaskCreate(task1, "task1", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	xTaskCreate(gameTask, "gameTask", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 	ScorePublisher_Init();
 
 	/* Create tasks */

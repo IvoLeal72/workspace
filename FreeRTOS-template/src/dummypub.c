@@ -5,31 +5,36 @@
  *      Author: psampaio
  */
 
+#include <transport.h>
 #include "LPC17xx.h"
 #include "MQTTPacket.h"
-#include "transport.h"
 #include "esp8266.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "MQTTConnect.h"
-#include "MQTTPublish.h"
-#include "MQTTSubscribe.h"
-#include "MQTTUnsubscribe.h"
-#include "MQTTFormat.h"
+#include <string.h>
 
 #define groupId 11
-#define score 72
+unsigned int toPublish=0;
 
 enum {STATE_INIT, STATE_CONNECT, STATE_WAIT_CONNECT, STATE_PUBLISH};
 
-static void TemperaturePublisher_Task(void *pvParameters);
+static void ScorePublisher_Task(void *pvParameters);
+
+static ESP_DATA* lastData;
+static unsigned int lastData_idx=0;
+#define SAVED_BYTES (lastData->buff_size-lastData_idx)
 
 bool ScorePublisher_Init(){
-	return xTaskCreate(TemperaturePublisher_Task, "MQTT", configMINIMAL_STACK_SIZE, NULL, 1, NULL)==pdPASS;
+	return xTaskCreate(ScorePublisher_Task, "MQTT", 16*configMINIMAL_STACK_SIZE, NULL, 2, NULL)==pdPASS;
 }
 
 bool NETWORK_Init(void) {
-	return true;
+	lastData=NULL;
+	WIFI_NETWORK conn;
+	strcpy(conn.ssid, "MI A2 LITE");
+	strcpy(conn.pwd, "leal697121");
+	conn.secur=3;
+	return ESP_Init() && (ESP_SetAp(conn, false)==0);
 }
 
 bool NETWORK_Connect(const char *host, const unsigned short int port,
@@ -42,11 +47,19 @@ int NETWORK_Send(unsigned char *address, unsigned int bytes) {
 }
 
 int NETWORK_Recv(unsigned char *address, unsigned int maxbytes) {
-	if(!ESP_WaitForIPD(10000)) return false;
-	ESP_DATA* data=ESP_RemoteReceive();
 	unsigned int max=maxbytes;
-	if(data->buff_size < max) max=data->buff_size;
-	memcpy(address, data->buffer, max);
+	if(lastData==NULL || SAVED_BYTES==0){
+		if(lastData!=NULL){
+			vPortFree(lastData->buffer);
+			vPortFree(lastData);
+		}
+		if(!ESP_WaitForIPD(10000)) return 0;
+		lastData=ESP_RemoteReceive();
+		lastData_idx=0;
+	}
+	if(SAVED_BYTES < max) max=SAVED_BYTES;
+	memcpy(address, lastData->buffer+lastData_idx, max);
+	lastData_idx+=max;
 	return max;
 }
 
@@ -55,7 +68,7 @@ int NETWORK_Recv(unsigned char *address, unsigned int maxbytes) {
 #define MQTT_PORT				1883
 #define MQTT_DEVICE_TOKEN		"SE2-BEST-RECORDS"
 
-static void TemperaturePublisher_Task(void *pvParameters) {
+static void ScorePublisher_Task(void *pvParameters) {
 	unsigned char buffer[128];
 	MQTTTransport transporter;
 	int result;
@@ -71,6 +84,7 @@ static void TemperaturePublisher_Task(void *pvParameters) {
 	int transport_socket = transport_open(&iof);
 
 	int state = STATE_INIT;
+	TickType_t lastSend=xTaskGetTickCount();
 	while (true) {
 		switch (state) {
 		case STATE_INIT:
@@ -121,11 +135,12 @@ static void TemperaturePublisher_Task(void *pvParameters) {
 			MQTTString topicString = MQTTString_initializer;
 			topicString.cstring = "v1/devices/me/telemetry";
 			unsigned char payload[64];
-			length = sprintf(payload, "{\"group\":%d, \"score\":%d}", groupId, score);
+			length = sprintf(payload, "{\"group\":%d, \"score\":%d}", groupId, toPublish);
+			toPublish++;
 			length = MQTTSerialize_publish(buffer, sizeof(buffer), 0, 0, 0, 0, topicString, payload, length);
 			// Send PUBLISH to the MQTT broker.
 			if ((result = transport_sendPacketBuffer(transport_socket, buffer, length)) == length) {
-				// Wait for new data.
+				vTaskDelayUntil(&lastSend, pdMS_TO_TICKS(10000));
 			} else {
 				state = STATE_INIT;
 			}

@@ -18,8 +18,8 @@
 
 typedef enum{WriteChar, Locate, WriteString, Clear, CreateChar, SetCursor} CMD;
 
-static SemaphoreHandle_t mutex;
-static QueueHandle_t cmds;
+static volatile SemaphoreHandle_t mutex;
+static volatile QueueHandle_t cmds;
 
 typedef struct{
 	CMD cmd;
@@ -77,18 +77,30 @@ static void sendCMD(LCD_CMD* ptr){
 	xQueueSend(cmds, ptr, portMAX_DELAY);
 }
 
-static void RTOS_LCD_Clear(){
+static void RTOS_LCD_Clear_internal(){
 	LCD_CMD command;
 	command.cmd=Clear;
 	sendCMD(&command);
 }
 
-static void RTOS_LCD_Locate(int row, int column){
+void RTOS_LCD_Clear(){
+	RTOS_LCD_Lock();
+	RTOS_LCD_Clear_internal();
+	RTOS_LCD_Unlock();
+}
+
+static void RTOS_LCD_Locate_internal(int row, int column){
 	LCD_CMD command;
 	command.cmd=Locate;
 	command.row=row;
 	command.column=column;
 	sendCMD(&command);
+}
+
+void RTOS_LCD_Locate(int row, int column){
+	RTOS_LCD_Lock();
+	RTOS_LCD_Clear_internal(row, column);
+	RTOS_LCD_Unlock();
 }
 
 static void RTOS_LCD_WriteChar(char ch){
@@ -132,10 +144,10 @@ void RTOS_LCD_SetCursor(bool state){
 void RTOS_LCD_LocatedChar(int row, int column, char ch, bool clear){
 	RTOS_LCD_Lock();
 	if(clear){
-		RTOS_LCD_Clear();
+		RTOS_LCD_Clear_internal();
 	}
 
-	RTOS_LCD_Locate(row, column);
+	RTOS_LCD_Locate_internal(row, column);
 
 	RTOS_LCD_WriteChar(ch);
 
@@ -145,17 +157,17 @@ void RTOS_LCD_LocatedChar(int row, int column, char ch, bool clear){
 void RTOS_LCD_LocatedPrint(int row, int column, char* str, bool clear){
 	RTOS_LCD_Lock();
 	if(clear){
-		RTOS_LCD_Clear();
+		RTOS_LCD_Clear_internal();
 	}
 
-	RTOS_LCD_Locate(row, column);
+	RTOS_LCD_Locate_internal(row, column);
 
 	RTOS_LCD_WriteString(str);
 
 	RTOS_LCD_Unlock();
 }
 
-void RTOS_LCD_Printf(int row, int column, bool clear, char *fmt, ...){
+void RTOS_LCD_LocatedPrintf(int row, int column, bool clear, char *fmt, ...){
 	char buffer[33];
 	va_list args;
 	va_start(args, fmt);

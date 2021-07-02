@@ -23,13 +23,13 @@ static void buttonsHandler(void* params){
     }
     int value;
     while(1){
-        while((value=BUTTON_GetButtonsEvents())==0);
+        while((value=BUTTON_GetButtonsEvents())==0) vTaskDelay(1);
         xQueueSend(buttons, &value, portMAX_DELAY);
     }
 }
 
 bool RTOS_Buttons_Init(){
-    return xTaskCreate(buttonsHandler, "buttonsHandler", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+    return xTaskCreate(buttonsHandler, "buttonsHandler", 2*configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 }
 
 int RTOS_Buttons_GetEvents(uint32_t timeout){

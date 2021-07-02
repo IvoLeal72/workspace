@@ -241,7 +241,7 @@ bool ESP_RemoteSend(char* data, size_t length){
 			return false;
 	}
 	ESP_SendData(data, length);
-	return true;
+	//return true;
 	return ESP_WaitForOk(20*CHAR_TIMEOUT);
 }
 
