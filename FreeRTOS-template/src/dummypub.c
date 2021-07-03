@@ -25,7 +25,7 @@ static unsigned int lastData_idx=0;
 #define SAVED_BYTES (lastData->buff_size-lastData_idx)
 
 bool ScorePublisher_Init(){
-	return xTaskCreate(ScorePublisher_Task, "MQTT", 16*configMINIMAL_STACK_SIZE, NULL, 2, NULL)==pdPASS;
+	return xTaskCreate(ScorePublisher_Task, "MQTT", 10*configMINIMAL_STACK_SIZE, NULL, 2, NULL)==pdPASS;
 }
 
 bool NETWORK_Init(void) {

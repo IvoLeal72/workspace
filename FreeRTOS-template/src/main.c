@@ -33,11 +33,14 @@ void gameTask(void*);
 
 int main(void)
 {
+	LED_Init(false);
 	WAIT_Init();
 	RTOS_LCD_Init();
 	RTOS_Buttons_Init();
-	xTaskCreate(gameTask, "gameTask", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
+	ADXL345_Init();
+	RTC_Init(949881600);
 	ScorePublisher_Init();
+	xTaskCreate(gameTask, "gameTask", configMINIMAL_STACK_SIZE, NULL, 2, NULL);
 
 	/* Create tasks */
 	vTaskStartScheduler();

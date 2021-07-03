@@ -74,12 +74,6 @@ bool Game_Update(){
 }
 
 void Game_Init(){
-	LED_Init(false);
-	WAIT_Init();
-	RTOS_LCD_Init();
-	RTOS_Buttons_Init();
-	ADXL345_Init();
-	RTC_Init(949881600);
 	loadGameSprites();
 }
 
